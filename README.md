@@ -42,5 +42,5 @@ More docs later...
 
 ### Thanks to ###
 
-keeto (Mark Obcena) for the parser/compiler
-shinetech (Danny Brain) for syntax ideas
+* keeto (Mark Obcena) for the parser/compiler
+* shinetech (Danny Brain) for syntax ideas
