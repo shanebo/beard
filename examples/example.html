@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>grow a beard.</title>
+</head>
+<body>
+
+	<h1>{hello.world}</h1>
+	
+	{if a}
+		<h2>hello {makeUpperCase(a)}!</h2>
+	{end}
+	
+	{if b eq 'nice'}
+		b es nice!
+	{else}
+		b es no nice!
+	{end}
+	
+
+	<h2>List example</h2>
+
+	{if collection}
+		<ul>
+		{each person in collection}
+			<li>hello {person.name.first} {person.name.last}!</li>
+		{end}
+		</ul>
+	{else}
+		There is no collection    
+	{end}
+
+
+	{each cat in cats}
+		<em>hello {cat}!</em>
+	{end}
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+	"name": "beard",
+	"version": "0.0.1",
+	"description": "More than a mustache.",
+	"author": "Shane Thacker <shane@steadymade.com>",
+	"engine": "node >= 0.4.1",
+	"main": "./lib/beard"
+}
