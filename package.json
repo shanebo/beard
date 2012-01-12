@@ -5,6 +5,6 @@
 	"keywords": ["template engine", "node", "browser"],
 	"repository": "git://github.com/shanebo/beard.git",
 	"author": "Shane Thacker <shane@steadymade.com>",
-	"engine": "node >= 0.4.1",
+	"engine": ">= 0.4.1",
 	"main": "./lib/beard"
 }
