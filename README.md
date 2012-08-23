@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/shanebo/beard.png)](http://travis-ci.org/shanebo/beard)
 Beard
 ===================
 
