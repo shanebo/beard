@@ -11,8 +11,16 @@ http.createServer(function (request, response) {
 	fs.readFile(__dirname + '/example.html', 'UTF-8', function(err, template){
 		if (err) throw err;
 		var view = {
-			hello: {
-				world: 'waaassssuupp...'
+			page: {
+				title: 'Grow a Beard'
+			},
+			index: {
+				'yo': {
+					name: { first: 'Charles', last: 'Spurgeon' }
+				},
+				'mama': {
+					name: { first: 'John', last: 'Calvin' }
+				}
 			},
 			collection: [
 				{
@@ -22,8 +30,8 @@ http.createServer(function (request, response) {
 					name: { first: 'Chuck', last: 'Norris' }
 				}
 			],
-			a: 'mark',
-			b: 'foo',
+			subhead: 'Beard Examples',
+			nacho: 'foo',
 			cats: ['jack','black','attack'],
 			makeUpperCase: function(str){
 				return str.toUpperCase();

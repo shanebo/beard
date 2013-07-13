@@ -5,43 +5,82 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>I need a beard.</title>
+
+	{ignore}
+	<style type="text/css">
+		body { background-color: #f3ffcc; font: normal 14px/24px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif }
+	</style>
+	{endignore}
+
 </head>
 <body>
 
-	<h1>{hello.world}</h1>
-	
-	{if a}
-		<h2>hello {makeUpperCase(a)}!</h2>
-	{end}
-	
-	{if b eq 'nice'}
-		b es nice!
-	{else}
-		b es no nice!
-	{end}
+
+	<h1>{page.title}</h1>
 	
 
-	<h2>List example</h2>
+	<hr />
 
-	{if collection}
-		<ul>
-		{each person in collection}
-			<li>hello {person.name.first} {person.name.last}!</li>
 
-	{each cat in cats}
-		<em>hello {cat}!</em>
+	{if subhead}
+		<h2>{makeUpperCase(subhead)}!</h2>
 	{end}
+	
 
+	<h2>Ignore Inline Code</h2>
+	{ignore}
+	<code>
+		<pre>
+		{if nacho === 'nice'}
+			"nacho" es nice!
+		{else if nacho neq 'nice'}
+			"nacho" es no nice!
 		{end}
-		</ul>
-	{else}
-		There is no collection    
-	{end}
+		</pre>
+	</code>
+	{endignore}
+
+	
+	<hr />
 
 
-	{each cat in cats}
-		<em>hello {cat}!</em>
+	<h2>Array Each Example</h2>
+	<ul>
+	{each person in collection}
+		<li>
+			hello {person.name.first} {person.name.last}!
+
+			{each cat in cats}
+				<em>{cat}</em>
+			{end}
+
+		</li>
 	{end}
+	</ul>
+
+
+	<hr />
+
+
+	<h2>For Loop Example</h2>
+	<ul>
+	{for key,idx in index}
+		<li>{key}: {idx.name.first} {idx.name.last}!</li>
+	{end}
+	</ul>
+
+
+	{ignore}
+	<script>
+		var hello = {
+			world: function(){
+				alert('see how ignore works!');
+			}
+		};
+		
+		hello.world();
+	</script>
+	{endignore}
 
 </body>
 </html>
