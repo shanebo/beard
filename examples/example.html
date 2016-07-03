@@ -6,39 +6,22 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>I need a beard.</title>
 
-    {ignore}
     <style type="text/css">
         body { background-color: #f3ffcc; font: normal 14px/24px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif }
     </style>
-    {endignore}
-
 </head>
 <body>
 
 
-    <h1>{page.title}</h1>
+    <h1>{{page.title}}</h1>
 
 
-    <hr />
+    <hr>
 
 
-    {if subhead}
-        <h2>{makeUpperCase(subhead)}!</h2>
-    {end}
-
-
-    <h2>Ignore Inline Code</h2>
-    {ignore}
-    <code>
-        <pre>
-        {if nacho === 'nice'}
-            "nacho" es nice!
-        {else if nacho neq 'nice'}
-            "nacho" es no nice!
-        {end}
-        </pre>
-    </code>
-    {endignore}
+    {{if subhead}}
+        <h2>{{makeUpperCase(subhead)}}!</h2>
+    {{end}}
 
 
     <hr />
@@ -46,16 +29,16 @@
 
     <h2>Array Each Example</h2>
     <ul>
-    {each person in collection}
+    {{each person in collection}}
         <li>
-            hello {person.name.first} {person.name.last}!
+            hello {{person.name.first}} {{person.name.last}}!
 
-            {each cat in cats}
-                <em>{cat}</em>
-            {end}
+            {{each cat in cats}}
+                <em>{{cat}}</em>
+            {{end}}
 
         </li>
-    {end}
+    {{end}}
     </ul>
 
 
@@ -64,23 +47,37 @@
 
     <h2>For Loop Example</h2>
     <ul>
-    {for key,idx in index}
-        <li>{key}: {idx.name.first} {idx.name.last}!</li>
-    {end}
+    {{for key,idx in index}}
+        <li>{{key}}: {{idx.name.first}} {{idx.name.last}}!</li>
+    {{end}}
     </ul>
 
 
-    {ignore}
-    <script>
-        var hello = {
-            world: function(){
-                alert('see how ignore works!');
-            }
-        };
+    {{block 'jack'}}
+    <h2>Array Each Example</h2>
+    <ul>
+    {{each person in collection}}
+        <li>
+            hello {{person.name.first}} {{person.name.last}}!
 
-        hello.world();
-    </script>
-    {endignore}
+            {{each cat in cats}}
+                <em>{{cat}}</em>
+            {{end}}
+
+        </li>
+    {{end}}
+    </ul>
+    {{endblock}}
+
+
+    {{block 'black'}}
+        <h1>Don't you know those are de Lord's chips?</h1>
+    {{endblock}}
+
+
+    {{jack}}
+    {{black}}
+
 
 </body>
 </html>

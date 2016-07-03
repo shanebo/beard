@@ -2,7 +2,8 @@ var iterator = 0;
 var ignore = false;
 
 var exps = {
-    _statement: (/\{\s*([^}]+?)\s*\}/g),
+    _block: (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
+    _statement: (/\{{\s*([^}]+?)\s*\}}/g),
     _operators: (/\s+(and|or|eq|neq|is|isnt|not)\s+/g),
     _if: (/^if\s+([^]*)$/),
     _elseif: (/^else\s+if\s+([^]*)$/),
@@ -23,17 +24,17 @@ var operators = {
 };
 
 var parse = {
-    
+
     _operators: function(_, op){
         return operators[op];
     },
 
-    _if: function(_, state){
-        return 'if (' + state + ') {';
+    _if: function(_, statement){
+        return 'if (' + statement + ') {';
     },
 
-    _elseif: function(_, state){
-        return '} else if (' + state +') {';
+    _elseif: function(_, statement){
+        return '} else if (' + statement +') {';
     },
 
     _else: function(){
@@ -54,22 +55,21 @@ var parse = {
     _end: function(){
         return '}';
     }
-
 };
 
 var parser = function(match, inner){
     var prev = inner;
 
-    switch (true) {
-        case (match == '{ignore}'):
-            ignore = true;
-            return '';
-        case (ignore && match == '{endignore}'):
-            ignore = false;
-            return '';
-        case (ignore):
-            return match;
-    }
+    // switch (true) {
+    //     case (match == '{ignore}'):
+    //         ignore = true;
+    //         return '';
+    //     case (ignore && match == '{endignore}'):
+    //         ignore = false;
+    //         return '';
+    //     case (ignore):
+    //         return match;
+    // }
 
     inner = inner
         .replace(exps._operators, parse._operators)
@@ -86,7 +86,8 @@ var parser = function(match, inner){
 var compiler = function(str){
     str = str.replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"');
 
-    var fn = ('var _buffer = ""; with (data){ _buffer += "' + str.replace(exps._statement, parser) + '"; return _buffer; }')
+    // var fn = ('var _buffer = ""; with (data){ _buffer += "' + str.replace(exps._statement, parser) + '"; return _buffer; }')
+    var fn = ('var _buffer = ""; for (var prop in data) { if (data.hasOwnProperty(prop)) this[prop] = data[prop] } _buffer += "' + str.replace(exps._statement, parser) + '"; return _buffer;')
         .replace(/_buffer\s\+\=\s"";/, '')
         .replace(/(\{|\});/g, '$1')
         .replace('_buffer += "";', '')
@@ -101,12 +102,34 @@ var compiler = function(str){
     }
 };
 
-Beard = {
+// String.prototype.matchAll = function(regexp) {
+//     var matches = [];
+//     this.replace(regexp, function(){
+//         var arr = ([]).slice.call(arguments, 0);
+//         matches.push(arr);
+//     });
+//     return matches.length ? matches : null;
+// };
+
+var Beard = {
 
     render: function(template, view){
+        var matches = [];
+
+        template = template.replace(exps._block, function(){
+            var arr = ([]).slice.call(arguments, 0);
+            matches.push(arr);
+            return '';
+        });
+
+        matches.forEach(function(set){
+            // set[1] is the var name;
+            // set[2] is the var content;
+            view[set[1]] = compiler(set[2])(view);
+        });
+
         return compiler(template)(view);
     }
-
 };
 
 if (typeof module !== 'undefined' && module.exports) {
