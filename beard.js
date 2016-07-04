@@ -1,9 +1,13 @@
+(function(context){
+
 var iterator = 0;
-var ignore = false;
+var onIgnore = false;
+var skipIgnore = false;
 
 var exps = {
-    _block: (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
-    _statement: (/\{{\s*([^}]+?)\s*\}}/g),
+    _block: (/{block\s+'(.[^}]*)'}([^]*?){endblock}/g),
+    _include: (/include\s(\S+?)$/),
+    _statement: (/\{\s*([^}]+?)\s*\}/g),
     _operators: (/\s+(and|or|eq|neq|is|isnt|not)\s+/g),
     _if: (/^if\s+([^]*)$/),
     _elseif: (/^else\s+if\s+([^]*)$/),
@@ -24,6 +28,12 @@ var operators = {
 };
 
 var parse = {
+
+    _include: function(_, name){
+        var str = '_buffer += (_data_["'+ name +'"] || "")';
+        console.log(str);
+        return str;
+    },
 
     _operators: function(_, op){
         return operators[op];
@@ -60,18 +70,26 @@ var parse = {
 var parser = function(match, inner){
     var prev = inner;
 
-    // switch (true) {
-    //     case (match == '{ignore}'):
-    //         ignore = true;
-    //         return '';
-    //     case (ignore && match == '{endignore}'):
-    //         ignore = false;
-    //         return '';
-    //     case (ignore):
-    //         return match;
+    switch (true) {
+        case (match == '{ignore}'):
+            onIgnore = true;
+            return skipIgnore ? match : '';
+        case (onIgnore && match == '{endignore}'):
+            onIgnore = false;
+            return skipIgnore ? match : '';
+        case (onIgnore):
+            return match;
+    }
+
+    // if ((/{include\s([^}]+?)\s*}/g).test(match)) {
+    //     console.log('inner: ' + inner);
+    //     console.log('match: ' + match);
+    //     inner = parse._include('', inner.replace('include ', ''));
+        // return parse._include('', inner.replace('include ', ''));
     // }
 
     inner = inner
+        .replace(exps._include, parse._include)
         .replace(exps._operators, parse._operators)
         .replace(exps._end, parse._end)
         .replace(exps._else, parse._else)
@@ -86,8 +104,8 @@ var parser = function(match, inner){
 var compiler = function(str){
     str = str.replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"');
 
-    // var fn = ('var _buffer = ""; with (data){ _buffer += "' + str.replace(exps._statement, parser) + '"; return _buffer; }')
-    var fn = ('var _buffer = ""; for (var prop in data) { if (data.hasOwnProperty(prop)) this[prop] = data[prop] } _buffer += "' + str.replace(exps._statement, parser) + '"; return _buffer;')
+    var fn = ('var _buffer = ""; with (_data_){ _buffer += "' + str.replace(exps._statement, parser) + '"; return _buffer; }')
+    // var fn = ('var _buffer = ""; for (var prop in _data_) { if (_data_.hasOwnProperty(prop)) this[prop] = _data_[prop] } _buffer += "' + str.replace(exps._statement, parser) + '"; return _buffer;')
         .replace(/_buffer\s\+\=\s"";/, '')
         .replace(/(\{|\});/g, '$1')
         .replace('_buffer += "";', '')
@@ -96,8 +114,8 @@ var compiler = function(str){
         .replace(/\r/g, '\\r');
 
     try {
-        return new Function('data', fn);
-    } catch(e) {
+        return new Function('_data_', fn);
+    } catch (e) {
         throw new Error('Cant compile template:' + fn);
     }
 };
@@ -122,16 +140,30 @@ var Beard = {
             return '';
         });
 
+        skipIgnore = true;
         matches.forEach(function(set){
             // set[1] is the var name;
             // set[2] is the var content;
             view[set[1]] = compiler(set[2])(view);
         });
 
+        skipIgnore = false;
         return compiler(template)(view);
     }
 };
 
-if (typeof module !== 'undefined' && module.exports) {
+
+if (typeof module !== 'undefined') {
     module.exports = Beard;
+} else {
+    this.Beard = Beard;
 }
+
+
+// context.slab = {
+//     compile: compile,
+//     parse: parse,
+//     generate: generate
+// };
+
+})(typeof exports != 'undefined' ? exports : this);
