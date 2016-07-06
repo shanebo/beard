@@ -30,9 +30,7 @@ var operators = {
 var parse = {
 
     _include: function(_, name){
-        var str = '_buffer += (_data_["'+ name +'"] || "")';
-        console.log(str);
-        return str;
+        return '_buffer += (_data_["' + name + '"] || "")';
     },
 
     _operators: function(_, op){
@@ -80,13 +78,6 @@ var parser = function(match, inner){
         case (onIgnore):
             return match;
     }
-
-    // if ((/{include\s([^}]+?)\s*}/g).test(match)) {
-    //     console.log('inner: ' + inner);
-    //     console.log('match: ' + match);
-    //     inner = parse._include('', inner.replace('include ', ''));
-        // return parse._include('', inner.replace('include ', ''));
-    // }
 
     inner = inner
         .replace(exps._include, parse._include)
@@ -156,14 +147,7 @@ var Beard = {
 if (typeof module !== 'undefined') {
     module.exports = Beard;
 } else {
-    this.Beard = Beard;
+    context.Beard = Beard;
 }
 
-
-// context.slab = {
-//     compile: compile,
-//     parse: parse,
-//     generate: generate
-// };
-
-})(typeof exports != 'undefined' ? exports : this);
+})(typeof module != 'undefined' ? module.exports : this);
