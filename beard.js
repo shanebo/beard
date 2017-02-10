@@ -41,6 +41,7 @@ var parse = {
     keep: function(_, contents) {
         id += 1;
         keeps[id] = contents;
+        console.log('_keep_' + id + '_endkeep_');
         return '_keep_' + id + '_endkeep_';
     },
 
@@ -76,29 +77,63 @@ var parse = {
     }
 };
 
+function renderExtend(template, data) {
+    var matches;
+    template = template.replace(/{extend\s(.*?)}/, function(){
+        matches = ([]).slice.call(arguments, 0);
+        return '';
+    });
+
+    if (matches && matches.length) {
+        var path = matches[1];
+        // var view = this._cache['/views/' + path].body;
+        // view += "{block view}" + this.preRender(template, data) + "{endblock}";
+        var view = this._cache['/views/' + path].body;
+        view = view.replace(exps.keep, parse.keep);
+        view += "{block view}" + this.preRender(template, data) + "{endblock}";
+        return view;
+        // layout += "{block view}" + this.render(template, data) + "{endblock}";
+        // layout += "{block view}" + this.renderStart.call(self, template, data) + "{endblock}";
+    } else {
+        return template;
+    }
+}
+
+function renderInclude(template, data) {
+    var matches;
+    template = template.replace(/{include\s(.*?)}/g, function(){
+        matches = ([]).slice.call(arguments, 0);
+        var path = matches[1];
+        return renderInclude(this.partial(path, data), data);
+    }.bind(this));
+    return template;
+}
+
+function renderBlocks(template, data) {
+    var matches = [];
+    template = template.replace(exps.block, function(){
+        var arr = ([]).slice.call(arguments, 0);
+        matches.push(arr);
+        return '';
+    });
+
+    matches.forEach(function(set){
+        // set[1] is the var name;
+        // set[2] is the var value;
+        data[set[1]] = compile(set[2])(data);
+    });
+
+    return compile(template)(data);
+}
+
 function parser(match, inner) {
     var prev = inner;
 
     console.log(match);
     console.log(inner);
 
-    // switch (true) {
-    //     case (match == '{ignore}'):
-    //         onIgnore = true;
-    //         return skipIgnore ? match : '';
-    //
-    //     case (onIgnore && match == '{endignore}'):
-    //         onIgnore = false;
-    //         return skipIgnore ? match : '';
-    //
-    //     case (onIgnore):
-    //         return match;
-    // }
-
     inner = inner
         // .replace(exps.keep, parse.keep)
-        // .replace(exps.include, parse.include)
-        // .replace(exps._extend, parse._extend)
         .replace(exps.operators, parse.operators)
         .replace(exps.end, parse.end)
         .replace(exps.else, parse.else)
@@ -108,12 +143,11 @@ function parser(match, inner) {
         .replace(exps.for, parse.for);
 
     return '";' + (inner == prev ? ' _buffer += ' : '') + inner.replace(/\t|\n|\r/, '') + '; _buffer += "';
-    // return '";' + (inner == prev ? ' _buffer += ' : '') + inner.replace(/\t|\n|\r/, '') + '; _buffer += "';
-};
+}
 
 function compile(str) {
     str = str
-        .replace(exps.keep, parse.keep)
+        // .replace(exps.keep, parse.keep)
         .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
         .replace(exps.statement, parser)
         .replace(/_buffer_\s\+=\s"";/g, '')
@@ -121,13 +155,6 @@ function compile(str) {
         .replace(/\n/g, '\\n')
         .replace(/\t/g, '\\t')
         .replace(/\r/g, '\\r');
-
-    // if (!skipKeep) {
-    //     str = str.replace(/_keep_([^]*?)_endkeep_/g, function(_, keepId) {
-    //         console.log('keepId: ' + keepId);
-    //         return keeps[keepId];
-    //     });
-    // }
 
     var fn = (
         'var _buffer = ""; \
@@ -143,43 +170,42 @@ function compile(str) {
     } catch (e) {
         throw new Error('Cant compile template:' + fn);
     }
-};
+}
 
 
-var Beard = {
+var Beard = function(cache){
+    this._cache = cache;
+}
 
-    renderBlocks: function(template, view){
-        // skipIgnore = true;
-        // skipKeep = true;
-        var matches = [];
-        template = template.replace(exps.block, function(){
-            var arr = ([]).slice.call(arguments, 0);
-            matches.push(arr);
-            return '';
-        });
+Beard.prototype = {
 
-        matches.forEach(function(set){
-            // set[1] is the var name;
-            // set[2] is the var content;
-            view[set[1]] = compile(set[2])(view);
-        });
-
-        // skipIgnore = false;
-
-        return compile(template)(view);
+    partial: function(path, data){
+        return this.preRender(this._cache['/views/' + path].body, data);
+        // return this.render(this._cache['/views/' + path].body, data);
     },
 
-    render: function(template, view){
-        skipIgnore = true;
-        skipKeep = true;
-        template = Beard.renderBlocks(template, view);
-        skipIgnore = false;
-        skipKeep = false;
+    preRender: function(template, data){
+        template = template.replace(exps.keep, parse.keep);
+        // skipKeep = true;
+        template = renderExtend.call(this, template, data);
+        template = renderInclude.call(this, template, data);
+        template = renderBlocks(template, data);
+        // skipKeep = false;
+        console.log('keeps:');
+        console.log(keeps);
+        template = compile(template)(data);
+        return template;
+        // return compile(template)(data);
+    },
 
+    render: function(template, data){
+        skipKeep = true;
+        template = this.preRender(template, data);
+        skipKeep = false;
         console.log('keeps:');
         console.log(keeps);
 
-        template = compile(template)(view);
+        template = compile(template)(data);
 
         if (!skipKeep) {
             template = template.replace(/_keep_([^]*?)_endkeep_/g, function(_, keepId) {
@@ -188,15 +214,36 @@ var Beard = {
             });
         }
 
-        // setTimeout(function(){
-          id = 0;
-          keeps = {};
-        // }, 2000);
-        // id = 0;
-        // keeps = {};
+        id = 0;
+        keeps = {};
         return template;
-        // return compile(template)(view);
+        // return compile(template)(data);
     }
+
+    // render: function(template, data){
+    //     template = template.replace(exps.keep, parse.keep);
+    //     skipKeep = true;
+    //     template = renderExtend.call(this, template, data);
+    //     template = renderInclude.call(this, template, data);
+    //     template = renderBlocks(template, data);
+    //     skipKeep = false;
+    //     console.log('keeps:');
+    //     console.log(keeps);
+    //
+    //     template = compile(template)(data);
+    //
+    //     if (!skipKeep) {
+    //         template = template.replace(/_keep_([^]*?)_endkeep_/g, function(_, keepId) {
+    //             console.log('keepId: ' + keepId);
+    //             return keeps[keepId];
+    //         });
+    //     }
+    //
+    //     id = 0;
+    //     keeps = {};
+    //     return template;
+    //     // return compile(template)(data);
+    // }
 };
 
 
