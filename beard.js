@@ -4,16 +4,14 @@ var iterator = 0;
 var keeps = {};
 var id = 0;
 var onIgnore = false;
-var skipIgnore = false;
+var skipIgnore = true;
 var skipKeep = true;
 
 var exps = {
+    // _extend: (/extend\s(\S+?)$/),
+    // include: (/include\s(\S+?)$/),
     keep: (/{keep}([^]*?){endkeep}/g),
     block: (/{block\s+(.[^}]*)}([^]*?){endblock}/g),
-    // _extend: (/extend\s(\S+?)$/),
-
-    // include: (/include\s(\S+?)$/),
-
     statement: (/\{\s*([^}]+?)\s*\}/g),
     operators: (/\s+(and|or|eq|neq|is|isnt|not)\s+/g),
     if: (/^if\s+([^]*)$/),
@@ -40,10 +38,10 @@ var parse = {
     //     return '_buffer += (_data_["' + name + '"] || "")';
     // },
 
-    keep: function(_, statement) {
-        console.log('statement:');
-        console.log(statement);
-        return 'YO KEEP THIS';
+    keep: function(_, contents) {
+        id += 1;
+        keeps[id] = contents;
+        return '_keep_' + id + '_endkeep_';
     },
 
     operators: function(_, op) {
@@ -84,18 +82,18 @@ function parser(match, inner) {
     console.log(match);
     console.log(inner);
 
-    switch (true) {
-        case (match == '{ignore}'):
-            onIgnore = true;
-            return skipIgnore ? match : '';
-
-        case (onIgnore && match == '{endignore}'):
-            onIgnore = false;
-            return skipIgnore ? match : '';
-
-        case (onIgnore):
-            return match;
-    }
+    // switch (true) {
+    //     case (match == '{ignore}'):
+    //         onIgnore = true;
+    //         return skipIgnore ? match : '';
+    //
+    //     case (onIgnore && match == '{endignore}'):
+    //         onIgnore = false;
+    //         return skipIgnore ? match : '';
+    //
+    //     case (onIgnore):
+    //         return match;
+    // }
 
     inner = inner
         // .replace(exps.keep, parse.keep)
@@ -114,24 +112,11 @@ function parser(match, inner) {
 };
 
 function compile(str) {
-    // str = str.replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"');
-    // var fn = ('var _buffer = ""; with (_data_){ _buffer += "' + str.replace(exps.statement, parser) + '"; return _buffer; }')
-
-
-    str = str.replace(/{keep}([^]*?){endkeep}/g, function(_, contents) {
-        id += 1;
-        keeps[id] = contents;
-        return '_keep_' + id + '_endkeep_';
-    });
-
-    // console.log(keeps);
-
     str = str
+        .replace(exps.keep, parse.keep)
         .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
         .replace(exps.statement, parser)
         .replace(/_buffer_\s\+=\s"";/g, '')
-        // .replace(/_buffer\s\+\=\s"";/, '')
-        // .replace('_buffer += "";', '')
         .replace(/(\{|\});/g, '$1')
         .replace(/\n/g, '\\n')
         .replace(/\t/g, '\\t')
@@ -153,31 +138,6 @@ function compile(str) {
          return _buffer;'
     );
 
-    // console.log(fn);
-
-
-/*
-    str = str
-        .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
-
-    var fn = (
-        'var _buffer = ""; \
-        for (var prop in _data_) { \
-            if (_data_.hasOwnProperty(prop)) this[prop] = _data_[prop]; \
-        } \
-        _buffer += "' + str.replace(exps.statement, parser) + '"; \
-        return _buffer;'
-    );
-
-    fn
-        .replace(/_buffer\s\+\=\s"";/, '')
-        .replace(/(\{|\});/g, '$1')
-        .replace('_buffer += "";', '')
-        .replace(/\n/g, '\\n')
-        .replace(/\t/g, '\\t')
-        .replace(/\r/g, '\\r');
-*/
-
     try {
         return new Function('_data_', fn);
     } catch (e) {
@@ -189,16 +149,14 @@ function compile(str) {
 var Beard = {
 
     renderBlocks: function(template, view){
+        // skipIgnore = true;
+        // skipKeep = true;
         var matches = [];
-
         template = template.replace(exps.block, function(){
             var arr = ([]).slice.call(arguments, 0);
             matches.push(arr);
             return '';
         });
-
-        skipIgnore = true;
-        skipKeep = true;
 
         matches.forEach(function(set){
             // set[1] is the var name;
@@ -212,34 +170,14 @@ var Beard = {
     },
 
     render: function(template, view){
-        // var matches = [];
-        //
-        // template = template.replace(exps.block, function(){
-        //     var arr = ([]).slice.call(arguments, 0);
-        //     matches.push(arr);
-        //     return '';
-        // });
-        //
-        // skipIgnore = true;
-        //
-        // matches.forEach(function(set){
-        //     // set[1] is the var name;
-        //     // set[2] is the var content;
-        //     view[set[1]] = compile(set[2])(view);
-        // });
-
-
-        // skipIgnore = true;
-        // keeps = {};
-        // id = 0;
-
+        skipIgnore = true;
+        skipKeep = true;
         template = Beard.renderBlocks(template, view);
         skipIgnore = false;
         skipKeep = false;
 
         console.log('keeps:');
         console.log(keeps);
-
 
         template = compile(template)(view);
 
@@ -250,18 +188,15 @@ var Beard = {
             });
         }
 
+        // setTimeout(function(){
+          id = 0;
+          keeps = {};
+        // }, 2000);
         // id = 0;
         // keeps = {};
-
         return template;
-
         // return compile(template)(view);
     }
-    // ,
-    //
-    // __calvin = function(path, options, fn) {
-    //     exports.renderFile(path, options, fn);
-    // }
 };
 
 
