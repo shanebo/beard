@@ -9,7 +9,7 @@ var skipKeep = true;
 
 var exps = {
     // _extend: (/extend\s(\S+?)$/),
-    // include: (/include\s(\S+?)$/),
+    include: (/{include\s(.*?)}/g),
     keep: (/{keep}([^]*?){endkeep}/g),
     block: (/{block\s+(.[^}]*)}([^]*?){endblock}/g),
     statement: (/\{\s*([^}]+?)\s*\}/g),
@@ -86,27 +86,19 @@ function renderExtend(template, data) {
 
     if (matches && matches.length) {
         var path = matches[1];
-        // var view = this._cache['/views/' + path].body;
-        // view += "{block view}" + this.preRender(template, data) + "{endblock}";
         var view = this._cache['/views/' + path].body;
         view = view.replace(exps.keep, parse.keep);
         view += "{block view}" + this.preRender(template, data) + "{endblock}";
         return view;
-        // layout += "{block view}" + this.render(template, data) + "{endblock}";
-        // layout += "{block view}" + this.renderStart.call(self, template, data) + "{endblock}";
     } else {
         return template;
     }
 }
 
 function renderInclude(template, data) {
-    var matches;
-    template = template.replace(/{include\s(.*?)}/g, function(){
-        matches = ([]).slice.call(arguments, 0);
-        var path = matches[1];
-        return renderInclude(this.partial(path, data), data);
+    return template.replace(exps.include, function(_, path){
+        return this.partial(path, data);
     }.bind(this));
-    return template;
 }
 
 function renderBlocks(template, data) {
