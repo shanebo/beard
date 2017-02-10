@@ -3,7 +3,7 @@
 var http = require('http');
 var fs = require('fs');
 var Beard = require('beard');
-
+var engine = new Beard();
 
 http.createServer(function (request, response) {
     response.writeHead(200, {'Content-Type': 'text/html'});
@@ -37,7 +37,7 @@ http.createServer(function (request, response) {
                 return str.toUpperCase();
             }
         };
-        var html = Beard.render(template, view);
+        var html = engine.render(template, view);
         response.end(html);
     });
 
