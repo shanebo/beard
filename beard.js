@@ -3,16 +3,17 @@
 var Beard = function(cache){
     this._cache = cache;
 }
+
 var iterator = 0;
-var keeps = {};
-var keepId = 0;
+var ignores = {};
+var ignoreId = 0;
 
 var exps = {
     extend: (/{extend\s(.*?)}/),
     include: (/{include\s(.*?)}/g),
     block: (/{block\s+(.[^}]*)}([^]*?){endblock}/g),
-    keep: (/{keep}([^]*?){endkeep}/g),
-    keepTemp: (/_keep_([^]*?)_endkeep_/g),
+    ignore: (/{ignore}([^]*?){endignore}/g),
+    ignoreTemp: (/_ignore_([^]*?)_endignore_/g),
     statement: (/\{\s*([^}]+?)\s*\}/g),
     operators: (/\s+(and|or|eq|neq|is|isnt|not)\s+/g),
     if: (/^if\s+([^]*)$/),
@@ -35,14 +36,14 @@ var operators = {
 
 var parse = {
 
-    keep: function(_, contents) {
-        keepId += 1;
-        keeps[keepId] = contents;
-        return '_keep_' + keepId + '_endkeep_';
+    ignore: function(_, contents) {
+        ignoreId += 1;
+        ignores[ignoreId] = contents;
+        return '_ignore_' + ignoreId + '_endignore_';
     },
 
-    keepTemp: function(_, id) {
-        return keeps[id];
+    ignoreTemp: function(_, id) {
+        return ignores[id];
     },
 
     operators: function(_, op) {
@@ -102,8 +103,8 @@ Beard.prototype = {
 
         if (matches && matches.length) {
             var path = matches[1];
-            var view = this._cache['/views/' + path].body;
-            view = view.replace(exps.keep, parse.keep);
+            var view = this._cache[path];
+            view = view.replace(exps.ignore, parse.ignore);
             view += "{block view}" + this.preRender(template, data) + "{endblock}";
             return view;
         } else {
@@ -113,7 +114,7 @@ Beard.prototype = {
 
     parseInclude: function(template, data) {
         return template.replace(exps.include, function(_, path){
-            return this.preRender(this._cache['/views/' + path].body, data);
+            return this.preRender(this._cache[path], data);
         }.bind(this));
     },
 
@@ -135,7 +136,7 @@ Beard.prototype = {
     },
 
     preRender: function(template, data){
-        template = template.replace(exps.keep, parse.keep);
+        template = template.replace(exps.ignore, parse.ignore);
         template = this.parseExtend(template, data);
         template = this.parseInclude(template, data);
         template = this.parseBlock(template, data);
@@ -144,11 +145,9 @@ Beard.prototype = {
 
     render: function(template, data){
         template = this.preRender(template, data);
-        template = template.replace(exps.keepTemp, parse.keepTemp);
-        console.log('keeps:');
-        console.log(keeps);
-        keepId = 0;
-        keeps = {};
+        template = template.replace(exps.ignoreTemp, parse.ignoreTemp);
+        ignoreId = 0;
+        ignores = {};
         return template;
     },
 

@@ -6,11 +6,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>I need a beard.</title>
 
-    {keep}
+    {ignore}
     <style type="text/css">
         body { background-color: #f3ffcc; font: normal 14px/24px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif }
     </style>
-    {endkeep}
+    {endignore}
 </head>
 <body>
 
@@ -29,38 +29,20 @@
     <hr>
 
 
-    <h2>Array Each Example</h2>
-    <ul>
-    {each person in collection}
-        <li>
-            hello {person.name.first} {person.name.last}!
-
-            {each cat in cats}
-                <em>{cat}</em>
-            {end}
-
-        </li>
-    {end}
-    </ul>
-
-
-    <hr>
-
-
     {jack}
     {black}
     {foo}
 
-    {keep}
+    {ignore}
         {if (true)}
             do something
         {end}
-    {endkeep}
+    {endignore}
 
 
-    {keep}
+    {ignore}
     {PUT SOME BRACKETS IN IGNORED}
-    {endkeep}
+    {endignore}
 
 
     <h2>For Loop Example</h2>

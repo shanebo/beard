@@ -8,7 +8,7 @@ var engine = new Beard();
 http.createServer(function (request, response) {
     response.writeHead(200, {'Content-Type': 'text/html'});
 
-    fs.readFile(__dirname + '/example.html', 'UTF-8', function(err, template){
+    fs.readFile(__dirname + '/example.beard', 'UTF-8', function(err, template){
         if (err) throw err;
         var view = {
             page: {
