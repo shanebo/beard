@@ -1,6 +1,6 @@
 {
 	"name": "beard",
-	"version": "0.1.0",
+	"version": "0.3.0",
 	"description": "More than a mustache.",
 	"keywords": ["template engine", "node", "browser"],
 	"repository": "git://github.com/shanebo/beard.git",
