@@ -1,0 +1,32 @@
+{block sidebar}
+  <h2>I'm the sidebar</h2>
+  <ul>
+    {for key, idx in index}
+      <li>{key}: {idx.name.first} {idx.name.last}!</li>
+    {end}
+  </ul>
+{endblock}
+
+{block main}
+  <h1>I'm the main content</h1>
+  <h1>{page.title}</h1>
+
+  <hr>
+
+  {if subhead}
+    <h2>{makeUpperCase(subhead)}!</h2>
+  {end}
+
+  <ul>
+    {each person in names}
+      <li>
+        hello {person.name.first} {person.name.last}!
+        {each cat in cats}
+        <em>{cat}</em>
+        {end}
+      </li>
+    {end}
+  </ul>
+{endblock}
+
+<h1>Im all the stuff leftover</h1>

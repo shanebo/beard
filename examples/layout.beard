@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {include partial}
+  </head>
+
+  <body>
+    <div>
+      {sidebar}
+    </div>
+
+    <div>
+      {content}
+    </div>
+
+    {view}
+  </body>
+</html>
