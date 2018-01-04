@@ -3,13 +3,28 @@ const Beard = function() {
 }
 
 Beard.prototype = {
-  render: (template, data) => compile(template)(data)
+
+  render: (template, data) => {
+    let layout;
+    let view = compile(template)(data)
+      .replace(/!!%%(.+)%%!!/, (_, path) => {
+        layout = _cache[path];
+        return '';
+      });
+
+    if (layout) {
+      return compile(`{block view}${view}{endblock} ${layout}`)(data);
+    } else {
+      return view;
+    }
+  }
 };
 
 // should we reset the iterator to zero every time render is called so it doesnt build up too large?
 let iterator = 0;
 
 const exps = {
+  extend:     (/^extend\s(.*?)$/g),
   include:    (/^include\s(.*?)$/g),
   block:      (/{block\s+(.[^}]*)}([^]*?){endblock}/g),
   statement:  (/\{\s*([^}]+?)\s*\}/g),
@@ -22,6 +37,7 @@ const exps = {
 };
 
 const parse = {
+  extend:     (_, path) => `_buffer += "!!%%${path}%%!!"`,
   include:    (_, path) => `_buffer += compile("${_cache[path]}")(_data_)`, // eventually we'll need to add support to pass in a _cache object
   block:      (_, varname, content) => `{:var ${varname} = compile("${content}")(_data_)}`,
   if:         (_, statement) => `if (${statement}) {`,
@@ -44,6 +60,7 @@ const parse = {
 function parser(match, inner) {
   const prev = inner;
   inner = inner
+    .replace(exps.extend, parse.extend)
     .replace(exps.include, parse.include)
     .replace(exps.end, parse.end)
     .replace(exps.else, parse.else)
@@ -56,6 +73,7 @@ function parser(match, inner) {
 }
 
 function compile(str) {
+
   str = str
     .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
     .replace(exps.block, parse.block)
@@ -79,8 +97,8 @@ function compile(str) {
     }
   `;
 
-  console.log('\n');
-  console.log(fn);
+  // console.log('\n');
+  // console.log(fn);
 
   try {
     eval(fn);
@@ -95,28 +113,25 @@ module.exports = Beard;
 
 
 
+
 // This is a template cache so you can test partials, blocks, layouts and such
 
 let _cache = {
-  'partials/joe': "<h1>Hello, my name is {name} {if name == 'Joe'}{include partials/lastname}{end}</h1>",
-  'partials/complex-test': '{block doitlive}{include partials/joe}{endblock} -- outside block -- {doitlive}',
-  'foobar': '{block nice}inside block{endblock} -- outside block -- {nice}',
-  'partials/lastname': 'Osburn and I\'m {include partials/winning}',
-  'partials/js': "yo {true ? 'true' : 'not true'}",
-  'partials/winning': 'winning with Shane.'
+  'page': '{extend layout}and im the page',
+  'layout': 'im the layout {view} footer',
+  'partials/another-layer-deep': 'and im another layer deep',
+  'partials/appeal': '{campaign.appeal}',
+  'partials/offer': '{campaign.offer} {include partials/another-layer-deep}',
+  'conditional-with-nested-partials': `
+  {if campaign.appeal}
+  {include partials/appeal}
+  {else}
+  {include partials/offer}
+  {end}`
 };
 
 // These are direct template tests so you don't have to do it in beard files for now
 
-console.log(compile("{include partials/js}", {}));
-
-console.log(compile("{include partials/joe}")({
-  name: 'Joe'
-}));
-
-console.log(compile("{include foobar}")({}));
-
-// this one isn't working
-// console.log(compile("{include partials/complex-test}")({
-//   name: 'Shane'
-// }));
+const engine = new Beard();
+console.log(engine.render('{include page}', {}));
+// console.log(engine.render('{include partials/another-layer-deep}', {}));
