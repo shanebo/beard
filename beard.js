@@ -6,16 +6,16 @@ Beard.prototype = {
 
   render: (template, data) => {
     let layout;
-    let view = compile(template)(data)
+    data.view = compile(template)(data)
       .replace(/!!%%(.+)%%!!/, (_, path) => {
         layout = _cache[path];
         return '';
       });
 
     if (layout) {
-      return compile(`{block view}${view}{endblock} ${layout}`)(data);
+      return compile(layout)(data);
     } else {
-      return view;
+      return data.view;
     }
   }
 };
@@ -39,7 +39,7 @@ const exps = {
 const parse = {
   extend:     (_, path) => `_buffer += "!!%%${path}%%!!"`,
   include:    (_, path) => `_buffer += compile("${_cache[path]}")(_data_)`, // eventually we'll need to add support to pass in a _cache object
-  block:      (_, varname, content) => `{:var ${varname} = compile("${content}")(_data_)}`,
+  block:      (_, varname, content) => `{:var ${varname} = compile("${content}")(_data_)}{:_data_["${varname}"] = ${varname}}`,
   if:         (_, statement) => `if (${statement}) {`,
   elseIf:     (_, statement) => `} else if (${statement}) {`,
   else:       () => '} else {',
@@ -117,8 +117,8 @@ module.exports = Beard;
 // This is a template cache so you can test partials, blocks, layouts and such
 
 let _cache = {
-  'page': '{extend layout}and im the page',
-  'layout': 'im the layout {view} footer',
+  'page': '{extend layout}and im the page {block main}hello Im the main content{endblock}{block sidebar}hello im the sidebar{endblock}',
+  'layout': 'im the layout {sidebar} - {main} {view} footer',
   'partials/another-layer-deep': 'and im another layer deep',
   'partials/appeal': '{campaign.appeal}',
   'partials/offer': '{campaign.offer} {include partials/another-layer-deep}',
