@@ -4,21 +4,23 @@ const Beard = function() {
 
 Beard.prototype = {
 
-  render: (template, data) => {
+  render: (template, data = { cache: true }) => {
     let layout;
-    data.view = compile(template)(data)
+    data.view = compiled(template, data)(data)
       .replace(/!!%%(.+)%%!!/, (_, path) => {
         layout = _cache[path];
         return '';
       });
 
     if (layout) {
-      return compile(layout)(data);
+      return compiled(layout, data)(data);
     } else {
       return data.view;
     }
   }
 };
+
+let compiledCache = {};
 
 // should we reset the iterator to zero every time render is called so it doesnt build up too large?
 let iterator = 0;
@@ -38,8 +40,8 @@ const exps = {
 
 const parse = {
   extend:     (_, path) => `_buffer += "!!%%${path}%%!!"`,
-  include:    (_, path) => `_buffer += compile("${_cache[path]}")(_data_)`, // eventually we'll need to add support to pass in a _cache object
-  block:      (_, varname, content) => `{:var ${varname} = compile("${content}")(_data_)}{:_data_["${varname}"] = ${varname}}`,
+  include:    (_, path) => `_buffer += compiled("${_cache[path]}", _data_)(_data_)`, // eventually we'll need to add support to pass in a _cache object
+  block:      (_, varname, content) => `{:var ${varname} = compiled("${content}", _data_)(_data_)}{:_data_["${varname}"] = ${varname}}`,
   if:         (_, statement) => `if (${statement}) {`,
   elseIf:     (_, statement) => `} else if (${statement}) {`,
   else:       () => '} else {',
@@ -72,8 +74,30 @@ function parser(match, inner) {
   return `"; ${(inner === prev && !/^:/.test(inner) ? ' _buffer += ' : '')} ${inner.replace(/\t|\n|\r|:/, '')}; _buffer += "`;
 }
 
-function compile(str) {
+function compiled(str, data) {
+  if (!data.cache) return compile(str);
 
+  let key = hash(str);
+
+  if (!compiledCache[key]) {
+    compiledCache[key] = compile(str);
+  }
+
+  return compiledCache[key];
+}
+
+function hash(str) {
+  let hash = 5381;
+  let i = str.length;
+
+  while(i) {
+    hash = (hash * 33) ^ str.charCodeAt(--i);
+  }
+
+  return hash >>> 0;
+}
+
+function compile(str) {
   str = str
     .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
     .replace(exps.block, parse.block)
