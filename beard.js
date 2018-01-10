@@ -5,7 +5,6 @@ module.exports = function(cache = {}) {
   const Beard = function() {}
 
   Beard.prototype = {
-
     render: (template, data = { cache: true }) => {
       iterator = 0;
       let layout;
@@ -22,8 +21,8 @@ module.exports = function(cache = {}) {
   const exps = {
     extend:     (/^extend\s(.*?)$/g),
     include:    (/^include\s(.*?)$/g),
-    block:      (/{block\s+(.[^}]*)}([^]*?){endblock}/g),
-    statement:  (/\{\s*([^}]+?)\s*\}/g),
+    block:      (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
+    statement:  (/\{{\s*([^}}]+?)\s*\}}/g),
     if:         (/^if\s+([^]*)$/),
     elseIf:     (/^else\s+if\s+([^]*)$/),
     else:       (/^else$/),
@@ -35,7 +34,7 @@ module.exports = function(cache = {}) {
   const parse = {
     extend:     (_, path) => `_buffer += "!!%%${path}%%!!"`,
     include:    (_, path) => `_buffer += compiled("${cache[path]}", _data_)(_data_)`,
-    block:      (_, varname, content) => `{:var ${varname} = compiled("${content}", _data_)(_data_)}{:_data_["${varname}"] = ${varname}}`,
+    block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data_)(_data_)}}{{:_data_["${varname}"] = ${varname}}}`,
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
