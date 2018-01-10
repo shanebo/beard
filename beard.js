@@ -12,11 +12,7 @@ Beard.prototype = {
         return '';
       });
 
-    if (layout) {
-      return compiled(layout, data)(data);
-    } else {
-      return data.view;
-    }
+    return layout ? compiled(layout, data)(data) : data.view;
   }
 };
 
