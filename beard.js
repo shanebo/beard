@@ -1,11 +1,13 @@
 module.exports = function(cache = {}) {
   let compiledCache = {};
+  let iterator = 0;
 
   const Beard = function() {}
 
   Beard.prototype = {
 
     render: (template, data = { cache: true }) => {
+      iterator = 0;
       let layout;
       data.view = compiled(template, data)(data)
         .replace(/!!%%(.+)%%!!/, (_, path) => {
@@ -16,9 +18,6 @@ module.exports = function(cache = {}) {
       return layout ? compiled(layout, data)(data) : data.view;
     }
   };
-
-  // should we reset the iterator to zero every time render is called so it doesnt build up too large?
-  let iterator = 0;
 
   const exps = {
     extend:     (/^extend\s(.*?)$/g),
