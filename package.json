@@ -2,9 +2,20 @@
 	"name": "beard",
 	"version": "0.3.0",
 	"description": "More than a mustache.",
-	"keywords": ["template engine", "node", "browser"],
+	"keywords": [
+		"template engine",
+		"node",
+		"browser"
+	],
 	"repository": "git://github.com/shanebo/beard.git",
 	"author": "Shane Thacker <shane@steadymade.com>",
 	"engine": ">= 0.4.1",
-	"main": "./beard"
+	"main": "./beard",
+	"devDependencies": {
+		"mocha": "4.1.0",
+		"chai": "4.1.2"
+	},
+	"scripts": {
+		"test": "mocha"
+	}
 }
