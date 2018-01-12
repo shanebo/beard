@@ -110,6 +110,11 @@ module.exports = function(cache = {}) {
           }
         }
         _buffer += "${str}";
+        for (var prop in _data_) {
+          if (_data_.hasOwnProperty(prop)) {
+            delete this[prop];
+          }
+        }
         return _buffer;
       }
     `;
