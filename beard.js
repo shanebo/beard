@@ -106,15 +106,10 @@ module.exports = function(cache = {}) {
         var _buffer = "";
         for (var prop in _data_) {
           if (_data_.hasOwnProperty(prop)) {
-            this[prop] = _data_[prop];
+            eval("var " + prop + " = " + JSON.stringify(_data_[prop]));
           }
         }
         _buffer += "${str}";
-        for (var prop in _data_) {
-          if (_data_.hasOwnProperty(prop)) {
-            delete this[prop];
-          }
-        }
         return _buffer;
       }
     `;
@@ -124,7 +119,7 @@ module.exports = function(cache = {}) {
 
     try {
       eval(fn);
-      return _compiledTemplate_;
+      return _compiledTemplate_.bind(_compiledTemplate_);
     } catch (e) {
       throw new Error(`Compilation error: ${fn}`);
     }
