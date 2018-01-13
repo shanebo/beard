@@ -1,10 +1,16 @@
 {
-	"name": "beard",
-	"version": "0.3.0",
-	"description": "More than a mustache.",
-	"keywords": ["template engine", "node", "browser"],
-	"repository": "git://github.com/shanebo/beard.git",
-	"author": "Shane Thacker <shane@steadymade.com>",
-	"engine": ">= 0.4.1",
-	"main": "./beard"
+  "name": "beard",
+  "version": "0.3.0",
+  "description": "More than a mustache.",
+  "keywords": [
+    "templating engine",
+    "node"
+  ],
+  "repository": "git://github.com/shanebo/beard.git",
+  "author": "Shane Thacker <shane@steadymade.com>",
+  "contributors": [
+    "Joe Osburn <joe@jnodev.com>"
+  ],
+  "engine": ">= 0.4.1",
+  "main": "./beard"
 }
