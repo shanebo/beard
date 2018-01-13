@@ -1,188 +1,132 @@
-(function(){
+module.exports = function(cache = {}, lookup = path => path) {
+  let compiledCache = {};
+  let iterator = 0;
 
-var Beard = function(cache){
-    this._cache = cache;
-}
+  const Beard = function() {}
 
-var iterator = 0;
-var ignores = {};
-var ignoreId = 0;
-
-var exps = {
-    extend: (/{extend\s(.*?)}/),
-    include: (/{include\s(.*?)}/g),
-    block: (/{block\s+(.[^}]*)}([^]*?){endblock}/g),
-    ignore: (/{ignore}([^]*?){endignore}/g),
-    ignoreTemp: (/_ignore_([^]*?)_endignore_/g),
-    statement: (/\{\s*([^}]+?)\s*\}/g),
-    operators: (/\s+(and|or|eq|neq|is|isnt|not)\s+/g),
-    if: (/^if\s+([^]*)$/),
-    elseIf: (/^else\s+if\s+([^]*)$/),
-    else: (/^else$/),
-    for: (/^for\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s+(.*)$/),
-    each: (/^each\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s(.*)$/),
-    end: (/^end$/)
-};
-
-var operators = {
-    and: ' && ',
-    or: ' || ',
-    eq: ' === ',
-    neq: ' !== ',
-    not: ' !',
-    isnt: ' != ',
-    is: ' == '
-};
-
-var parse = {
-
-    ignore: function(_, contents) {
-        ignoreId += 1;
-        ignores[ignoreId] = contents;
-        return '_ignore_' + ignoreId + '_endignore_';
-    },
-
-    ignoreTemp: function(_, id) {
-        return ignores[id];
-    },
-
-    operators: function(_, op) {
-        return operators[op];
-    },
-
-    if: function(_, statement) {
-        return 'if (' + statement + ') {';
-    },
-
-    elseIf: function(_, statement) {
-        return '} else if (' + statement +') {';
-    },
-
-    else: function() {
-        return '} else {';
-    },
-
-    for: function(_, key, value, object) {
-        if (!value) key = (value = key, 'iterator' + iterator++);
-        return 'for (var ' + key + ' in ' + object + '){' + 'var ' + value + ' = ' + object + '[' + key +'];';
-    },
-
-    each: function(_, iter, value, array) {
-        if (!value) iter = (value = iter, 'iterator' + iterator++);
-        var length = 'length' + iterator++;
-        return 'for (var ' + iter + ' = 0, ' + length + ' = ' + array + '.length; ' + iter + ' < ' + length + '; ' + iter + '++) {' + 'var ' + value + ' = ' + array + '[' + (iter) + '];';
-    },
-
-    end: function() {
-        return '}';
-    }
-};
-
-Beard.prototype = {
-
-    parser: function(match, inner) {
-        var prev = inner;
-        inner = inner
-            .replace(exps.operators, parse.operators)
-            .replace(exps.end, parse.end)
-            .replace(exps.else, parse.else)
-            .replace(exps.elseIf, parse.elseIf)
-            .replace(exps.if, parse.if)
-            .replace(exps.each, parse.each)
-            .replace(exps.for, parse.for);
-
-        return '";' + (inner === prev ? ' _buffer += ' : '') + inner.replace(/\t|\n|\r/, '') + '; _buffer += "';
-    },
-
-    parseExtend: function(template, data) {
-        var matches;
-        template = template.replace(exps.extend, function(){
-            matches = ([]).slice.call(arguments, 0);
-            return '';
+  Beard.prototype = {
+    render: (template, data = { cache: true }) => {
+      iterator = 0;
+      let layout;
+      data.view = compiled(template, data)(data)
+        .replace(/!!%%(.+)%%!!/, (_, path) => {
+          layout = cache[path];
+          return '';
         });
 
-        if (matches && matches.length) {
-            var path = matches[1];
-            var view = this._cache[path];
-            view = view.replace(exps.ignore, parse.ignore);
-            view += "{block view}" + this.preRender(template, data) + "{endblock}";
-            return view;
-        } else {
-            return template;
-        }
-    },
-
-    parseInclude: function(template, data) {
-        return template.replace(exps.include, function(_, path){
-            return this.preRender(this._cache[path], data);
-        }.bind(this));
-    },
-
-    parseBlock: function(template, data) {
-        var matches = [];
-        template = template.replace(exps.block, function(){
-            var arr = ([]).slice.call(arguments, 0);
-            matches.push(arr);
-            return '';
-        });
-
-        matches.forEach(function(set){
-            // set[1] is the var name;
-            // set[2] is the var value;
-            data[set[1]] = this.compile(set[2])(data);
-        }.bind(this));
-
-        return this.compile(template)(data);
-    },
-
-    preRender: function(template, data){
-        template = template.replace(exps.ignore, parse.ignore);
-        template = this.parseExtend(template, data);
-        template = this.parseInclude(template, data);
-        template = this.parseBlock(template, data);
-        return this.compile(template)(data);
-    },
-
-    render: function(template, data){
-        template = this.preRender(template, data);
-        template = template.replace(exps.ignoreTemp, parse.ignoreTemp);
-        ignoreId = 0;
-        ignores = {};
-        return template;
-    },
-
-    compile: function(str) {
-        str = str
-            .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
-            .replace(exps.statement, this.parser)
-            .replace(/_buffer_\s\+=\s"";/g, '')
-            .replace(/(\{|\});/g, '$1')
-            .replace(/\n/g, '\\n')
-            .replace(/\t/g, '\\t')
-            .replace(/\r/g, '\\r');
-
-        var fn = (
-            'var _buffer = ""; \
-             for (var prop in _data_) { \
-                if (_data_.hasOwnProperty(prop)) this[prop] = _data_[prop]; \
-             } \
-             _buffer += "' + str + '"; \
-             return _buffer;'
-        );
-
-        try {
-            return new Function('_data_', fn);
-        } catch (e) {
-            throw new Error('Cant compile template:' + fn);
-        }
+      return layout ? compiled(layout, data)(data) : data.view;
     }
+  };
+
+  const exps = {
+    extend:     (/^extend\s(.*?)$/g),
+    include:    (/^include\s(.*?)$/g),
+    block:      (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
+    statement:  (/\{{\s*([^}}]+?)\s*\}}/g),
+    if:         (/^if\s+([^]*)$/),
+    elseIf:     (/^else\s+if\s+([^]*)$/),
+    else:       (/^else$/),
+    for:        (/^for\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s+(.*)$/),
+    each:       (/^each\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s(.*)$/),
+    end:        (/^end$/)
+  };
+
+  const parse = {
+    extend:     (_, path) => `_buffer += "!!%%${lookup(path)}%%!!"`,
+    include:    (_, path) => `_buffer += compiled("${cache[lookup(path)]}", _data)(_data)`,
+    block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data)(_data)}}{{:_data["${varname}"] = ${varname}}}`,
+    if:         (_, statement) => `if (${statement}) {`,
+    elseIf:     (_, statement) => `} else if (${statement}) {`,
+    else:       () => '} else {',
+    end:        () => '}',
+
+    for: (_, key, value, object) => {
+      if (!value) key = (value = key, 'iterator' + iterator++);
+      return `for (var ${key} in ${object}){ var ${value} = ${object}[${key}];`;
+    },
+
+    each: (_, iter, value, array) => {
+      if (!value) iter = (value = iter, 'iterator' + iterator++);
+      var length = 'length' + iterator++;
+      return `for (var ${iter} = 0, ${length} = ${array}.length; ${iter} < ${length}; ${iter}++) { var ${value} = ${array}[${(iter)}];`;
+    }
+  };
+
+  function parser(match, inner) {
+    const prev = inner;
+    inner = inner
+      .replace(exps.extend, parse.extend)
+      .replace(exps.include, parse.include)
+      .replace(exps.end, parse.end)
+      .replace(exps.else, parse.else)
+      .replace(exps.elseIf, parse.elseIf)
+      .replace(exps.if, parse.if)
+      .replace(exps.each, parse.each)
+      .replace(exps.for, parse.for);
+
+    return `"; ${(inner === prev && !/^:/.test(inner) ? ' _buffer += ' : '')} ${inner.replace(/\t|\n|\r|:/, '')}; _buffer += "`;
+  }
+
+  function compiled(str, data) {
+    if (!data.cache) return compile(str);
+
+    let key = hash(str);
+
+    if (!compiledCache[key]) {
+      compiledCache[key] = compile(str);
+    }
+
+    return compiledCache[key];
+  }
+
+  function hash(str) {
+    let hash = 5381;
+    let i = str.length;
+
+    while(i) {
+      hash = (hash * 33) ^ str.charCodeAt(--i);
+    }
+
+    return hash >>> 0;
+  }
+
+  function compile(str) {
+    str = str
+      .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
+      .replace(exps.block, parse.block)
+      .replace(exps.statement, parser)
+      .replace(/_buffer_\s\+=\s"";/g, '')
+      .replace(/(\{|\});/g, '$1')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t')
+      .replace(/\r/g, '\\r');
+
+    const fn = `
+      function _compiledTemplate(_data){
+        var _buffer = "";
+
+        function _valForEval(val) {
+          if (typeof val == 'function') return val.toString();
+          return JSON.stringify(val);
+        }
+
+        for (var prop in _data) {
+          if (_data.hasOwnProperty(prop)) {
+            eval("var " + prop + " = " + _valForEval(_data[prop]));
+          }
+        }
+        _buffer += "${str}";
+        return _buffer;
+      }
+    `;
+
+    try {
+      eval(fn);
+      return _compiledTemplate.bind(_compiledTemplate);
+    } catch (e) {
+      throw new Error(`Compilation error: ${fn}`);
+    }
+  }
+
+  return new Beard();
 };
-
-
-if (typeof module !== 'undefined') {
-    module.exports = Beard;
-} else {
-    window.Beard = Beard;
-}
-
-})();
