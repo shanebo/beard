@@ -33,8 +33,8 @@ module.exports = function(cache = {}) {
 
   const parse = {
     extend:     (_, path) => `_buffer += "!!%%${path}%%!!"`,
-    include:    (_, path) => `_buffer += compiled("${cache[path]}", _data_)(_data_)`,
-    block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data_)(_data_)}}{{:_data_["${varname}"] = ${varname}}}`,
+    include:    (_, path) => `_buffer += compiled("${cache[path]}", _data)(_data)`,
+    block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data)(_data)}}{{:_data["${varname}"] = ${varname}}}`,
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
@@ -102,11 +102,17 @@ module.exports = function(cache = {}) {
       .replace(/\r/g, '\\r');
 
     const fn = `
-      function _compiledTemplate_(_data_){
+      function _compiledTemplate(_data){
         var _buffer = "";
-        for (var prop in _data_) {
-          if (_data_.hasOwnProperty(prop)) {
-            eval("var " + prop + " = " + JSON.stringify(_data_[prop]));
+
+        function _valForEval(val) {
+          if (typeof val == 'function') return val.toString();
+          return JSON.stringify(val);
+        }
+
+        for (var prop in _data) {
+          if (_data.hasOwnProperty(prop)) {
+            eval("var " + prop + " = " + _valForEval(_data[prop]));
           }
         }
         _buffer += "${str}";
@@ -119,7 +125,7 @@ module.exports = function(cache = {}) {
 
     try {
       eval(fn);
-      return _compiledTemplate_.bind(_compiledTemplate_);
+      return _compiledTemplate.bind(_compiledTemplate);
     } catch (e) {
       throw new Error(`Compilation error: ${fn}`);
     }
