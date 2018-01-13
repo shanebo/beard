@@ -12,5 +12,12 @@
     "Joe Osburn <joe@jnodev.com>"
   ],
   "engine": ">= 0.4.1",
-  "main": "./beard"
+  "main": "./beard",
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "4.1.0",
+    "chai": "4.1.2"
+  }
 }
