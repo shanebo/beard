@@ -71,4 +71,56 @@ describe('Beard Rendering', function() {
     expect(beardInstance.render(withConditional, {navigation: 'none'})).to.
       include('no nav');
   });
+
+  it('handles strings', function() {
+    expect(beardInstance.render('{{content}}', {content: 'some content'})).to.equal('some content');
+  });
+
+  it('handles numbers', function() {
+    expect(beardInstance.render('{{value}}', {value: 36})).to.equal('36');
+  });
+
+  it('handles arrays', function() {
+    expect(beardInstance.render('{{each name in names}}{{name}} {{end}}', {names: ['John Calvin', 'Charles Spurgeon']})).
+      to.equal('John Calvin Charles Spurgeon ');
+  });
+
+  it('handles arrays of objects', function() {
+    const data = {
+      people: [
+        {
+          name: 'John Knox'
+        },
+        {
+          name: 'Charles Spurgeon'
+        },
+        {
+          name: 'John Owen'
+        }
+      ]
+    };
+    expect(beardInstance.render('{{each person in people}}{{person.name}} {{end}}', data)).to.
+      equal('John Knox Charles Spurgeon John Owen ');
+  });
+
+  it('handles functions', function() {
+    expect(beardInstance.render('{{add(3, 10)}}', {add: (x, y) => x + y})).to.equal('13');
+  });
+
+  it('handles objects', function() {
+    const data = {
+      resource: {
+        slug: 'the-most-interesting-article'
+      }
+    };
+    expect(beardInstance.render('{{resource.slug}}', data)).to.include('the-most-interesting-article');
+  });
+
+  it('handles null values', function() {
+    expect(beardInstance.render('{{value}}', {value: null})).to.equal('null');
+  });
+
+  it('handles undefined values', function() {
+    expect(beardInstance.render('{{value}}', {value: undefined})).to.equal('undefined');
+  });
 });
