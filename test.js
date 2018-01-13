@@ -1,12 +1,13 @@
 const { expect } = require('chai');
 
 const beard = require('./beard');
-const beardInstance = beard({
-  'content': 'some content',
-  'layout': 'header {{nav}} - {{view}} footer'
-});
 
 describe('Beard Rendering', function() {
+  const beardInstance = beard({
+    'content': 'some content',
+    'layout': 'header {{nav}} - {{view}} footer'
+  });
+
   it('renders content', function() {
     expect(beardInstance.render('some content')).to.
       equal('some content');
@@ -122,5 +123,16 @@ describe('Beard Rendering', function() {
 
   it('handles undefined values', function() {
     expect(beardInstance.render('{{value}}', {value: undefined})).to.equal('undefined');
+  });
+});
+
+describe('Beard path lookup', function() {
+  const beardInstance = beard({
+    '/views/content': 'view content'
+  }, (path) => `/views/${path}`);
+
+  it('processes the path', function() {
+    expect(beardInstance.render('{{include content}}')).to.
+      equal('view content');
   });
 });

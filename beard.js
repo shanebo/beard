@@ -1,4 +1,4 @@
-module.exports = function(cache = {}) {
+module.exports = function(cache = {}, lookup = path => path) {
   let compiledCache = {};
   let iterator = 0;
 
@@ -32,8 +32,8 @@ module.exports = function(cache = {}) {
   };
 
   const parse = {
-    extend:     (_, path) => `_buffer += "!!%%${path}%%!!"`,
-    include:    (_, path) => `_buffer += compiled("${cache[path]}", _data)(_data)`,
+    extend:     (_, path) => `_buffer += "!!%%${lookup(path)}%%!!"`,
+    include:    (_, path) => `_buffer += compiled("${cache[lookup(path)]}", _data)(_data)`,
     block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data)(_data)}}{{:_data["${varname}"] = ${varname}}}`,
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
