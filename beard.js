@@ -7,19 +7,11 @@ module.exports = function(cache = {}, lookup = path => path) {
   Beard.prototype = {
     render: (template, data = { cache: true }) => {
       iterator = 0;
-      let layout;
-      data.view = compiled(template, data)(data)
-        .replace(/!!%%(.+)%%!!/, (_, path) => {
-          layout = cache[path];
-          return '';
-        });
-
-      return layout ? compiled(layout, data)(data) : data.view;
+      return compiled(template, data)(data);
     }
   };
 
   const exps = {
-    extend:     (/^extend\s(.*?)$/g),
     include:    (/^include\s(.*?)$/g),
     block:      (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
     statement:  (/\{{\s*([^}}]+?)\s*\}}/g),
@@ -32,7 +24,6 @@ module.exports = function(cache = {}, lookup = path => path) {
   };
 
   const parse = {
-    extend:     (_, path) => `_buffer += "!!%%${lookup(path)}%%!!"`,
     include:    (_, path) => `_buffer += compiled("${cache[lookup(path)]}", _data)(_data)`,
     block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data)(_data)}}{{:_data["${varname}"] = ${varname}}}`,
     if:         (_, statement) => `if (${statement}) {`,
@@ -91,7 +82,13 @@ module.exports = function(cache = {}, lookup = path => path) {
   }
 
   function compile(str) {
+    let layout;
+
     str = str
+      .replace(/\{{extend\s([^}}]+?)\}}/g, (_, path) => {
+        layout = cache[lookup(path)];
+        return '';
+      })
       .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
       .replace(exps.block, parse.block)
       .replace(exps.statement, parser)
@@ -101,7 +98,7 @@ module.exports = function(cache = {}, lookup = path => path) {
       .replace(/\t/g, '\\t')
       .replace(/\r/g, '\\r');
 
-    const fn = `
+    let fn = `
       function _compiledTemplate(_data){
         var _buffer = "";
 
@@ -116,6 +113,16 @@ module.exports = function(cache = {}, lookup = path => path) {
           }
         }
         _buffer += "${str}";
+    `;
+
+    if (layout) {
+      fn += `
+        _data['view'] = _buffer;
+        _buffer = compiled("${layout}", _data)(_data);
+      `;
+    }
+
+    fn += `
         return _buffer;
       }
     `;

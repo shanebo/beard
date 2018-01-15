@@ -124,6 +124,17 @@ describe('Beard Rendering', function() {
   it('handles undefined values', function() {
     expect(beardInstance.render('{{value}}', {value: undefined})).to.equal('undefined');
   });
+
+  it('handles sublayouts', function() {
+    const cache = {
+      'layout': 'header | {{view}} | footer',
+      'sublayout': '{{extend layout}}{{sidebar}} | {{view}} | {{main}}',
+      'view': '{{include partial}}',
+      'partial': '{{extend sublayout}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view'
+    };
+    const beard2 = beard(cache);
+    expect(beard2.render(cache.view)).to.equal('header | sidebar | hi im view | main | footer');
+  });
 });
 
 describe('Beard path lookup', function() {
