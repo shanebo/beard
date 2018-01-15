@@ -34,23 +34,23 @@ describe('Beard Rendering', function() {
   });
 
   it('handles each loops', function() {
-    const people = {
-      spurgeon: {
+    const people = [
+      {
         name: {
           first: 'Charles',
           last: 'Spurgeon'
         }
       },
-      calvin: {
+      {
         name: {
           first: 'John',
           last: 'Calvin'
         }
       }
-    }
-    const withForLoop = 'people = {{for key, idx in people}}{{key}}: {{idx.name.first}} {{idx.name.last}}! {{end}}';
-    expect(beardInstance.render(withForLoop, {people: people})).to.
-      equal('people = spurgeon: Charles Spurgeon! calvin: John Calvin! ');
+    ];
+    const withEachLoop = 'people = {{each person in people}}{{person.name.first}} {{person.name.last}}! {{end}}';
+    expect(beardInstance.render(withEachLoop, {people: people})).to.
+      equal('people = Charles Spurgeon! John Calvin! ');
   });
 
   it('handles conditionals', function() {
@@ -137,7 +137,7 @@ describe('Beard Rendering', function() {
   });
 });
 
-describe('Beard path lookup', function() {
+describe('Beard Path Lookup', function() {
   const beardInstance = beard({
     '/views/content': 'view content'
   }, (path) => `/views/${path}`);
