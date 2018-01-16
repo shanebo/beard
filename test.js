@@ -144,6 +144,42 @@ describe('Beard Rendering', function() {
     expect(beard2.render(`{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`))
       .to.equal('1st | 1, 2nd | 2');
   });
+
+  it('ignores inline css and js', function() {
+    expect(beardInstance.render(`
+      <style>
+      .hello {
+        background-color: #f33
+      }
+      </style>
+
+      <script>
+      function inlineScript() {
+        var obj = {
+          name: 'Jack Black'
+        };
+
+        console.log(obj);
+      }
+      </script>
+    `)).to.equal(`
+      <style>
+      .hello {
+        background-color: #f33
+      }
+      </style>
+
+      <script>
+      function inlineScript() {
+        var obj = {
+          name: 'Jack Black'
+        };
+
+        console.log(obj);
+      }
+      </script>
+    `);
+  });
 });
 
 describe('Beard Path Lookup', function() {
