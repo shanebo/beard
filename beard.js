@@ -12,7 +12,7 @@ module.exports = function(cache = {}, lookup = path => path) {
   };
 
   const exps = {
-    extends:    (/\{{extends\s([^}}]+?)\}}/g),
+    extends:    (/\{{extends\s\'([^}}]+?)\'\}}/g),
     include:    (/^include\s\'([^\(]*?)\'$/g),
     includeFn:  (/^include\((\s?\'([^\(]*?)\'\,\s?\{([^\)]*)\})\)$/g),
     block:      (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),

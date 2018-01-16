@@ -24,7 +24,7 @@ describe('Beard Rendering', function() {
   });
 
   it('extends layouts', function() {
-    expect(beardInstance.render('{{extends layout}}page content{{block nav}}main navigation{{endblock}}')).to.
+    expect(beardInstance.render("{{extends 'layout'}}page content{{block nav}}main navigation{{endblock}}")).to.
       equal('header main navigation - page content footer');
   });
 
@@ -55,7 +55,7 @@ describe('Beard Rendering', function() {
 
   it('handles conditionals', function() {
     const withConditional = `
-      {{extends layout}}
+      {{extends 'layout'}}
       {{if navigation === 'full'}}
         {{block nav}}full navigation{{endblock}}
       {{else if navigation === 'sub'}}
@@ -128,9 +128,9 @@ describe('Beard Rendering', function() {
   it('handles sublayouts', function() {
     const cache = {
       'layout': 'header | {{view}} | footer',
-      'sublayout': '{{extends layout}}{{sidebar}} | {{view}} | {{main}}',
+      'sublayout': "{{extends 'layout'}}{{sidebar}} | {{view}} | {{main}}",
       'view': "{{include 'partial'}}",
-      'partial': '{{extends sublayout}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view'
+      'partial': "{{extends 'sublayout'}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view"
     };
     const beard2 = beard(cache);
     expect(beard2.render(cache.view)).to.equal('header | sidebar | hi im view | main | footer');
