@@ -41,7 +41,7 @@ module.exports = function(cache = {}, lookup = path => path) {
 
     each: (_, iter, value, array) => {
       if (!value) iter = (value = iter, 'iterator' + iterator++);
-      var length = 'length' + iterator++;
+      const length = 'length' + iterator++;
       return `for (var ${iter} = 0, ${length} = ${array}.length; ${iter} < ${length}; ${iter}++) { var ${value} = ${array}[${(iter)}];`;
     }
   };
