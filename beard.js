@@ -5,7 +5,7 @@ module.exports = function(cache = {}, lookup = path => path) {
   const Beard = function() {}
 
   Beard.prototype = {
-    render: (template, data = { cache: true }) => {
+    render: (template, data = {}) => {
       iterator = 0;
       return compiled(template, data)(data);
     }
@@ -59,8 +59,6 @@ module.exports = function(cache = {}, lookup = path => path) {
   }
 
   function compiled(str, data) {
-    if (!data.cache) return compile(str);
-
     let key = hash(str);
 
     if (!compiledCache[key]) {

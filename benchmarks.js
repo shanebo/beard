@@ -15,11 +15,6 @@ const benchmarkTemplate = function(name, template, beardInstance, times = 10000)
   elapsed = time(start);
   console.log(`Rendering ${times} times with caching took ${elapsed}ms to complete.`);
 
-  start = time();
-  for(i = 0; i < times; i++) beardInstance.render(template, {cache: false});
-  elapsed = time(start);
-  console.log(`Rendering ${times} times without caching took ${elapsed}ms to complete.`);
-
   console.log('\n');
 }
 
