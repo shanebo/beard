@@ -90,11 +90,9 @@ module.exports = function(cache = {}, lookup = path => path) {
         layout = cache[lookup(path)];
         return '';
       })
-      .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
       .replace(exps.block, parse.block)
       .replace(exps.statement, parser)
       .replace(/_buffer_\s\+=\s"";/g, '')
-      .replace(/(\{|\});/g, '$1')
       .replace(/\n/g, '\\n')
       .replace(/\t/g, '\\t')
       .replace(/\r/g, '\\r');
