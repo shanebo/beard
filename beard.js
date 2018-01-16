@@ -12,10 +12,11 @@ module.exports = function(cache = {}, lookup = path => path) {
   };
 
   const exps = {
-    include:    (/^include\s(.*?)$/g),
     extends:    (/\{{extends\s([^}}]+?)\}}/g),
+    include:    (/^include\s\'([^\(]*?)\'$/g),
+    includeFn:  (/^include\((\s?\'([^\(]*?)\'\,\s?\{([^\)]*)\})\)$/g),
     block:      (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
-    statement:  (/\{{\s*([^}}]+?)\s*\}}/g),
+    statement:  (/{{\s*((?!}}).+?)\s*}}/g),
     if:         (/^if\s+([^]*)$/),
     elseIf:     (/^else\s+if\s+([^]*)$/),
     else:       (/^else$/),
@@ -26,6 +27,7 @@ module.exports = function(cache = {}, lookup = path => path) {
 
   const parse = {
     include:    (_, path) => `_buffer += compiled("${cache[lookup(path)]}", _data)(_data)`,
+    includeFn:  (_, __, path, data) => `_buffer += compiled("${cache[lookup(path)]}", _data)({${data}})`,
     block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data)(_data)}}{{:_data["${varname}"] = ${varname}}}`,
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
@@ -48,6 +50,7 @@ module.exports = function(cache = {}, lookup = path => path) {
     const prev = inner;
     inner = inner
       .replace(exps.include, parse.include)
+      .replace(exps.includeFn, parse.includeFn)
       .replace(exps.end, parse.end)
       .replace(exps.else, parse.else)
       .replace(exps.elseIf, parse.elseIf)
@@ -55,7 +58,7 @@ module.exports = function(cache = {}, lookup = path => path) {
       .replace(exps.each, parse.each)
       .replace(exps.for, parse.for);
 
-    return `"; ${(inner === prev && !/^:/.test(inner) ? ' _buffer += ' : '')} ${inner.replace(/\t|\n|\r|:/, '')}; _buffer += "`;
+    return `"; ${(inner === prev && !/^:/.test(inner) ? ' _buffer += ' : '')} ${inner.replace(/\t|\n|\r|^:/, '')}; _buffer += "`;
   }
 
   function compiled(str, data) {

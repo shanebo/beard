@@ -14,7 +14,7 @@ describe('Beard Rendering', function() {
   });
 
   it('includes templates', function() {
-    expect(beardInstance.render('header {{include content}} footer')).to.
+    expect(beardInstance.render(`header {{include 'content'}} footer`)).to.
       equal('header some content footer');
   });
 
@@ -129,21 +129,36 @@ describe('Beard Rendering', function() {
     const cache = {
       'layout': 'header | {{view}} | footer',
       'sublayout': '{{extends layout}}{{sidebar}} | {{view}} | {{main}}',
-      'view': '{{include partial}}',
+      'view': "{{include 'partial'}}",
       'partial': '{{extends sublayout}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view'
     };
     const beard2 = beard(cache);
     expect(beard2.render(cache.view)).to.equal('header | sidebar | hi im view | main | footer');
   });
+
+  it('handles passing data to includes', function() {
+    const cache = {
+      'item': '{{title}} | {{item}}'
+    };
+    const beard2 = beard(cache);
+    expect(beard2.render(`{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`))
+      .to.equal('1st | 1, 2nd | 2');
+  });
 });
 
 describe('Beard Path Lookup', function() {
   const beardInstance = beard({
-    '/views/content': 'view content'
+    '/views/content': 'view content',
+    '/views/item': '{{title}} | {{item}}'
   }, (path) => `/views/${path}`);
 
   it('processes the path', function() {
-    expect(beardInstance.render('{{include content}}')).to.
+    expect(beardInstance.render("{{include 'content'}}")).to.
       equal('view content');
+  });
+
+  it('handles passing data to includes', function() {
+    expect(beardInstance.render(`{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`))
+      .to.equal('1st | 1, 2nd | 2');
   });
 });

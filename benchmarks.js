@@ -22,7 +22,7 @@ benchmarkTemplate('Simple Content', 'some content', beard({}));
 
 benchmarkTemplate(
   'Page with Layout',
-  '{{include page}}',
+  "{{include 'page'}}",
   beard({
     'page': '{{extends layout}}page content{{block header}}the header{{endblock}}',
     'layout': 'top of page {{header}} -- {{view}} -- the footer'
@@ -31,7 +31,7 @@ benchmarkTemplate(
 
 benchmarkTemplate(
   'Page with Layout with Path Lookup',
-  '{{include page}}',
+  "{{include 'page'}}",
   beard({
     '/views/page': '{{extends layout}}page content{{block header}}the header{{endblock}}',
     '/views/layout': 'top of page {{header}} -- {{view}} -- the footer'
