@@ -13,6 +13,7 @@ module.exports = function(cache = {}, lookup = path => path) {
 
   const exps = {
     include:    (/^include\s(.*?)$/g),
+    extends:    (/\{{extends\s([^}}]+?)\}}/g),
     block:      (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
     statement:  (/\{{\s*([^}}]+?)\s*\}}/g),
     if:         (/^if\s+([^]*)$/),
@@ -46,7 +47,6 @@ module.exports = function(cache = {}, lookup = path => path) {
   function parser(match, inner) {
     const prev = inner;
     inner = inner
-      .replace(exps.extend, parse.extend)
       .replace(exps.include, parse.include)
       .replace(exps.end, parse.end)
       .replace(exps.else, parse.else)
@@ -83,7 +83,7 @@ module.exports = function(cache = {}, lookup = path => path) {
     let layout;
 
     str = str
-      .replace(/\{{extend\s([^}}]+?)\}}/g, (_, path) => {
+      .replace(exps.extends, (_, path) => {
         layout = cache[lookup(path)];
         return '';
       })

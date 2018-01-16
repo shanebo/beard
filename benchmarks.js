@@ -24,7 +24,7 @@ benchmarkTemplate(
   'Page with Layout',
   '{{include page}}',
   beard({
-    'page': '{{extend layout}}page content{{block header}}the header{{endblock}}',
+    'page': '{{extends layout}}page content{{block header}}the header{{endblock}}',
     'layout': 'top of page {{header}} -- {{view}} -- the footer'
   })
 );
@@ -33,7 +33,7 @@ benchmarkTemplate(
   'Page with Layout with Path Lookup',
   '{{include page}}',
   beard({
-    '/views/page': '{{extend layout}}page content{{block header}}the header{{endblock}}',
+    '/views/page': '{{extends layout}}page content{{block header}}the header{{endblock}}',
     '/views/layout': 'top of page {{header}} -- {{view}} -- the footer'
   },
     (path) => `/views/${path}`
