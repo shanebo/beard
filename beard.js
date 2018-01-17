@@ -7,7 +7,11 @@ module.exports = function(cache = {}, lookup = path => path) {
   Beard.prototype = {
     render: (template, data = {}) => {
       iterator = 0;
-      return compiled(template, data)(data);
+      let context = {
+        globals: {},
+        locals: [data]
+      };
+      return compiled(template)(context);
     }
   };
 
@@ -15,8 +19,9 @@ module.exports = function(cache = {}, lookup = path => path) {
     extends:    (/\{{extends\s\'([^}}]+?)\'\}}/g),
     include:    (/^include\s\'([^\(]*?)\'$/g),
     includeFn:  (/^include\((\s?\'([^\(]*?)\'\,\s?\{([^\)]*)\})\)$/g),
-    block:      (/{{block\s+(.[^}]*)}}([^]*?){{endblock}}/g),
-    statement:  (/{{\s*((?!}}).+?)\s*}}/g),
+    block:      (/^block\s+(.[^}]*)/g),
+    blockEnd:   (/^endblock$/g),
+    statement:  (/{{\s*([\S\s(?!}})]+?)\s*}}/g),
     if:         (/^if\s+([^]*)$/),
     elseIf:     (/^else\s+if\s+([^]*)$/),
     else:       (/^else$/),
@@ -26,9 +31,10 @@ module.exports = function(cache = {}, lookup = path => path) {
   };
 
   const parse = {
-    include:    (_, path) => `_buffer += compiled("${cache[lookup(path)]}", _data)(_data)`,
-    includeFn:  (_, __, path, data) => `_buffer += compiled("${cache[lookup(path)]}", _data)({${data}})`,
-    block:      (_, varname, content) => `{{:var ${varname} = compiled("${content}", _data)(_data)}}{{:_data["${varname}"] = ${varname}}}`,
+    include:    (_, path) => `_capture(compiled(\`${cache[lookup(path)]}\`)(_context));`,
+    includeFn:  (_, __, path, data) => `_context.locals.push({${data}}); _capture(compiled(\`${cache[lookup(path)]}\`)(_context)); _context.locals.pop();`,
+    block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
+    blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
@@ -51,6 +57,8 @@ module.exports = function(cache = {}, lookup = path => path) {
     inner = inner
       .replace(exps.include, parse.include)
       .replace(exps.includeFn, parse.includeFn)
+      .replace(exps.block, parse.block)
+      .replace(exps.blockEnd, parse.blockEnd)
       .replace(exps.end, parse.end)
       .replace(exps.else, parse.else)
       .replace(exps.elseIf, parse.elseIf)
@@ -58,10 +66,14 @@ module.exports = function(cache = {}, lookup = path => path) {
       .replace(exps.each, parse.each)
       .replace(exps.for, parse.for);
 
-    return `"; ${(inner === prev && !/^:/.test(inner) ? ' _buffer += ' : '')} ${inner.replace(/\t|\n|\r|^:/, '')}; _buffer += "`;
+    const middle = inner === prev && !/^:/.test(inner)
+      ? `_capture(${inner});`
+      : inner.replace(/\t|\n|\r|^:/, '');
+
+    return `"); ${middle} _capture("`;
   }
 
-  function compiled(str, data) {
+  function compiled(str) {
     let key = hash(str);
 
     if (!compiledCache[key]) {
@@ -83,48 +95,58 @@ module.exports = function(cache = {}, lookup = path => path) {
   }
 
   function compile(str) {
-    let layout;
+    let layout = '';
 
     str = str
       .replace(exps.extends, (_, path) => {
-        layout = cache[lookup(path)];
+        layout = `
+          _context.globals.view = _buffer;
+          _buffer = compiled(\`${cache[lookup(path)]}\`)(_context);
+        `;
         return '';
       })
-      .replace(exps.block, parse.block)
       .replace(exps.statement, parser)
-      .replace(/_buffer_\s\+=\s"";/g, '')
       .replace(/\n/g, '\\n')
       .replace(/\t/g, '\\t')
       .replace(/\r/g, '\\r');
 
-    let fn = `
-      function _compiledTemplate(_data){
+    const fn = `
+      function _compiledTemplate(_context){
         var _buffer = "";
+        var _blockName;
+        var _blockCapture;
 
         function _valForEval(val) {
           if (typeof val == 'function') return val.toString();
           return JSON.stringify(val);
         }
 
-        for (var prop in _data) {
-          if (_data.hasOwnProperty(prop)) {
-            eval("var " + prop + " = " + _valForEval(_data[prop]));
+        function _capture(str) {
+          if (_blockName) {
+            _blockCapture += str;
+          } else {
+            _buffer += str;
           }
         }
-        _buffer += "${str}";
-    `;
 
-    if (layout) {
-      fn += `
-        _data['view'] = _buffer;
-        _buffer = compiled("${layout}", _data)(_data);
-      `;
-    }
+        for (var prop in _context.globals) {
+          if (_context.globals.hasOwnProperty(prop)) {
+            eval("var " + prop + " = " + _valForEval(_context.globals[prop]));
+          }
+        }
 
-    fn += `
+        var _locals = _context.locals[_context.locals.length - 1];
+        for (var prop in _locals) {
+          if (_locals.hasOwnProperty(prop)) {
+            eval("var " + prop + " = " + _valForEval(_locals[prop]));
+          }
+        }
+
+        _capture("${str}");
+        ${layout}
         return _buffer;
       }
-    `;
+    `.replace(/_capture\(""\);(\s+)?/g, '');
 
     try {
       eval(fn);
