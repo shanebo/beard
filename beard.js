@@ -105,6 +105,7 @@ module.exports = function(cache = {}, lookup = path => path) {
         `;
         return '';
       })
+      .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
       .replace(exps.statement, parser)
       .replace(/\n/g, '\\n')
       .replace(/\t/g, '\\t')
