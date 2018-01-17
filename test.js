@@ -5,7 +5,13 @@ const beard = require('./beard');
 describe('Beard Rendering', function() {
   const beardInstance = beard({
     'content': 'some content',
-    'layout': 'header {{nav}} - {{view}} footer'
+    'layout': `
+      header
+      {{nav}}
+      -
+      {{view}}
+      footer
+    `
   });
 
   it('renders content', function() {
@@ -24,8 +30,14 @@ describe('Beard Rendering', function() {
   });
 
   it('extends layouts', function() {
-    expect(beardInstance.render("{{extends 'layout'}}page content{{block nav}}main navigation{{endblock}}")).to.
-      equal('header main navigation - page content footer');
+    expect(beardInstance.render(`
+      {{extends 'layout'}}
+      page content
+      {{block nav}}
+        main navigation
+      {{endblock}}
+    `).replace(/\s+/g, ' ')
+  ).to.equal(` header main navigation - page content footer `); // replacing excessive whitespace for readability
   });
 
   it('handles for loops', function() {
@@ -179,6 +191,51 @@ describe('Beard Rendering', function() {
       }
       </script>
     `);
+  });
+
+  it('handles nested template data', function() {
+    const cache = {
+      'layout': `
+        im inside layout
+        {{each name in names}}
+          {{name}}
+        {{end}}
+        {{insidePartialBlock}}
+        {{view}}
+      `,
+      'sublayout': `
+        {{extends 'layout'}}
+        im in sublayout
+        {{view}}
+        {{foo}}
+      `,
+      'view': `
+        {{extends 'sublayout'}}
+        im the view
+        {{block foo}}
+        im in foo block
+        {{include('partial', {key: value})}}
+        {{endblock}}
+      `,
+      'partial': `
+        {{if key == 'a'}}
+          {{block insidePartialBlock}}
+            first partialblock
+          {{endblock}}
+        {{else if key == 'b'}}
+          {{block insidePartialBlock}}
+            second partialblock
+          {{endblock}}
+        {{else}}
+          {{block insidePartialBlock}}
+            third partialblock
+          {{endblock}}
+        {{end}}
+      `
+    };
+    const beard2 = beard(cache);
+    expect(beard2.render(cache.view, {names: ['Jack', 'Black', 'John'], value: 'b'}).replace(/\s+/g, ' ')).to
+      .equal(' im inside layout Jack Black John second partialblock im in sublayout im the view im in foo block ');
   });
 });
 
