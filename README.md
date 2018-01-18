@@ -66,6 +66,5 @@ console.log(result); // returns 'Beards get STINKY.'
 
 ### Thanks to ###
 
-* keeto (Mark Obcena) for the parser/compiler
-* shinetech (Danny Brain) for syntax ideas
+* keeto (Mark Obcena) for the first iteration of the parser/compiler
 * joeosburn (Joe Osburn) for the updated compiler, cached compiled functions, tests, and benchmarks
