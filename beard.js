@@ -10,8 +10,8 @@ function hash(str) {
 }
 
 
-module.exports = function(cache = {}, lookup = (path) => path) {
-  let compiledCache = {};
+module.exports = function(cache = {}, resolve = (path, parentPath) => path) {
+  let fnCache = {};
   let iterator = 0;
 
   const Beard = function() {}
@@ -22,7 +22,8 @@ module.exports = function(cache = {}, lookup = (path) => path) {
 
       let context = {
         globals: {},
-        locals: [data]
+        locals: [data],
+        path: null
       };
 
       return compiled(path)(context);
@@ -45,8 +46,8 @@ module.exports = function(cache = {}, lookup = (path) => path) {
   };
 
   const parse = {
-    include:    (_, path) => `_capture(compiled("${path}")(_context));`,
-    includeFn:  (_, __, path, data) => `_context.locals.push({${data}}); _capture(compiled("${path}")(_context)); _context.locals.pop();`,
+    include:    (_, includePath) => `_capture(compiled("${includePath}", path)(_context));`,
+    includeFn:  (_, __, includePath, data) => `_context.locals.push({${data}}); _capture(compiled("${includePath}", path)(_context)); _context.locals.pop();`,
     block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
     blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
     if:         (_, statement) => `if (${statement}) {`,
@@ -87,26 +88,26 @@ module.exports = function(cache = {}, lookup = (path) => path) {
     return `"); ${middle} _capture("`;
   }
 
-  function compiled(path) {
-    const str = cache[lookup(path)];
-
+  function compiled(path, parentPath) {
+    const fullPath = resolve(path, parentPath);
+    const str = cache[fullPath];
     let key = hash(str);
 
-    if (!compiledCache[key]) {
-      compiledCache[key] = compile(str);
+    if (!fnCache[key]) {
+      fnCache[key] = compile(str, fullPath);
     }
 
-    return compiledCache[key];
+    return fnCache[key];
   }
 
-  function compile(str) {
+  function compile(str, path) {
     let layout = '';
 
     str = str
       .replace(exps.extends, (_, path) => {
         layout = `
           _context.globals.view = _buffer;
-          _buffer = compiled("${path}")(_context);
+          _buffer = compiled("${path}", path)(_context);
         `;
         return '';
       })
@@ -117,7 +118,8 @@ module.exports = function(cache = {}, lookup = (path) => path) {
       .replace(/\r/g, '\\r');
 
     const fn = `
-      function _compiledTemplate(_context){
+      function _compiledFn(_context){
+        var path = "${path}";
         var _buffer = "";
         var _blockName;
         var _blockCapture;
@@ -156,7 +158,7 @@ module.exports = function(cache = {}, lookup = (path) => path) {
 
     try {
       eval(fn);
-      return _compiledTemplate.bind(_compiledTemplate);
+      return _compiledFn.bind(_compiledFn);
     } catch (e) {
       throw new Error(`Compilation error: ${fn}`);
     }
