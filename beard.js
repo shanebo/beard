@@ -1,17 +1,31 @@
-module.exports = function(cache = {}, lookup = path => path) {
+function hash(str) {
+  let hash = 5381;
+  let i = str.length;
+
+  while (i) {
+    hash = (hash * 33) ^ str.charCodeAt(--i);
+  }
+
+  return hash >>> 0;
+}
+
+
+module.exports = function(cache = {}, lookup = (path) => path) {
   let compiledCache = {};
   let iterator = 0;
 
   const Beard = function() {}
 
   Beard.prototype = {
-    render: (template, data = {}) => {
+    render: (path, data = {}) => {
       iterator = 0;
+
       let context = {
         globals: {},
         locals: [data]
       };
-      return compiled(template)(context);
+
+      return compiled(path)(context);
     }
   };
 
@@ -31,8 +45,8 @@ module.exports = function(cache = {}, lookup = path => path) {
   };
 
   const parse = {
-    include:    (_, path) => `_capture(compiled(\`${cache[lookup(path)]}\`)(_context));`,
-    includeFn:  (_, __, path, data) => `_context.locals.push({${data}}); _capture(compiled(\`${cache[lookup(path)]}\`)(_context)); _context.locals.pop();`,
+    include:    (_, path) => `_capture(compiled("${path}")(_context));`,
+    includeFn:  (_, __, path, data) => `_context.locals.push({${data}}); _capture(compiled("${path}")(_context)); _context.locals.pop();`,
     block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
     blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
     if:         (_, statement) => `if (${statement}) {`,
@@ -73,7 +87,9 @@ module.exports = function(cache = {}, lookup = path => path) {
     return `"); ${middle} _capture("`;
   }
 
-  function compiled(str) {
+  function compiled(path) {
+    const str = cache[lookup(path)];
+
     let key = hash(str);
 
     if (!compiledCache[key]) {
@@ -83,17 +99,6 @@ module.exports = function(cache = {}, lookup = path => path) {
     return compiledCache[key];
   }
 
-  function hash(str) {
-    let hash = 5381;
-    let i = str.length;
-
-    while(i) {
-      hash = (hash * 33) ^ str.charCodeAt(--i);
-    }
-
-    return hash >>> 0;
-  }
-
   function compile(str) {
     let layout = '';
 
@@ -101,7 +106,7 @@ module.exports = function(cache = {}, lookup = path => path) {
       .replace(exps.extends, (_, path) => {
         layout = `
           _context.globals.view = _buffer;
-          _buffer = compiled(\`${cache[lookup(path)]}\`)(_context);
+          _buffer = compiled("${path}")(_context);
         `;
         return '';
       })
