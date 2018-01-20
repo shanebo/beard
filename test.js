@@ -1,4 +1,5 @@
 const { expect } = require('chai');
+const normalize = require('path').normalize;
 
 const beard = require('./beard');
 
@@ -278,18 +279,38 @@ describe('Beard Rendering', function() {
   });
 });
 
-describe('Beard Path Lookup', function() {
-  const beardInstance = beard({
-    '/views/content': 'view content',
-    '/views/item': '{{title}} | {{item}}',
-    '/views/list': `{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`
-  }, (path) => `/views/${path}`);
-
-  it('processes the path', function() {
-    expect(beardInstance.render('content')).to.equal('view content');
+describe('Beard Path Resolve', function() {
+  const engine = beard({
+    '/apps/example/routes/details/template': "{{extends '../sublayout'}}details template",
+    '/apps/example/routes/sublayout': 'sublayout header | {{view}} | footer',
+    '/apps/example/routes/index/template': "index header | {{include '~/list'}}",
+    '/apps/example/list': 'the list',
+    '/apps/example/template': "{{extends '/layouts/layout'}}example template",
+    '/layouts/layout': "the layout | {{include 'header'}} | {{view}} | {{include 'footer'}}",
+    '/layouts/header': 'im the header',
+    '/layouts/footer': 'im the footer'
+  }, function(path, parentPath) {
+    if (path.startsWith('/')) {
+      return path;
+    } else if (path.startsWith('~')) {
+      return path.replace(/^\~/, '/apps/example');
+    } else {
+      const currentDir = parentPath.replace(/\/[^\/]+$/, '');
+      return normalize(`${currentDir}/${path}`);
+    }
   });
 
-  it('handles passing data to includes', function() {
-    expect(beardInstance.render('list')).to.equal('1st | 1, 2nd | 2');
+  it('processes relative paths', function() {
+    expect(engine.render('/apps/example/routes/details/template'))
+      .to.equal('sublayout header | details template | footer');
+  });
+
+  it('processes the paths with relative paths and absolute paths', function() {
+    expect(engine.render('/apps/example/template'))
+      .to.equal('the layout | im the header | example template | im the footer');
+  });
+
+  it('processes the paths with subapp (~) paths', function() {
+    expect(engine.render('/apps/example/routes/index/template')).to.equal('index header | the list');
   });
 });
