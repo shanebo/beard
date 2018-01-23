@@ -146,9 +146,10 @@ describe('Beard Rendering', function() {
 
   it('handles functions', function() {
     const engine = beard({
-      'function': '{{add(3, 10)}}'
+      'functions': 'add = {{math.add(3, 10)}}, subtract = {{math.subtract(10, 5)}}'
     });
-    expect(engine.render('function', {add: (x, y) => x + y})).to.equal('13');
+    expect(engine.render('functions', {math: {add: (x, y) => x + y, subtract: (x, y) => x - y }}))
+      .to.equal('add = 13, subtract = 5');
   });
 
   it('handles objects', function() {
