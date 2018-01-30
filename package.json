@@ -2,6 +2,7 @@
   "name": "beard",
   "version": "0.4.0",
   "description": "More than a mustache.",
+  "license": "MIT",
   "keywords": [
     "templating engine",
     "node"
@@ -15,6 +16,9 @@
   "main": "./beard",
   "scripts": {
     "test": "mocha"
+  },
+  "dependencies": {
+    "traversy": "0.0.2"
   },
   "devDependencies": {
     "mocha": "4.1.0",
