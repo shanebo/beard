@@ -124,11 +124,6 @@ module.exports = function(cache = {}, resolve = (path, parentPath) => path) {
         var _blockName;
         var _blockCapture;
 
-        function _valForEval(val) {
-          if (typeof val == 'function') return val.toString();
-          return JSON.stringify(val);
-        }
-
         function _capture(str) {
           if (_blockName) {
             _blockCapture += str;
@@ -139,14 +134,14 @@ module.exports = function(cache = {}, resolve = (path, parentPath) => path) {
 
         for (var prop in _context.globals) {
           if (_context.globals.hasOwnProperty(prop)) {
-            eval("var " + prop + " = " + _valForEval(_context.globals[prop]));
+            eval("var " + prop + " = _context.globals[prop]");
           }
         }
 
         var _locals = _context.locals[_context.locals.length - 1];
         for (var prop in _locals) {
           if (_locals.hasOwnProperty(prop)) {
-            eval("var " + prop + " = " + _valForEval(_locals[prop]));
+            eval("var " + prop + " = _locals[prop]");
           }
         }
 
