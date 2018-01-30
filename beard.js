@@ -1,20 +1,30 @@
+const fs = require('fs');
+const exts = '(.brd$|.brd.html$)';
+const traversy = require('traversy');
+const normalize = require('path').normalize;
+
 function hash(str) {
   let hash = 5381;
   let i = str.length;
-
-  while (i) {
-    hash = (hash * 33) ^ str.charCodeAt(--i);
-  }
-
+  while (i) hash = (hash * 33) ^ str.charCodeAt(--i);
   return hash >>> 0;
 }
 
-
-module.exports = function(cache = {}, resolve = (path, parentPath) => path) {
+module.exports = function(cache = {}, root, home) {
   let fnCache = {};
+  let pathMap = {};
   let iterator = 0;
 
-  const Beard = function() {}
+  const Beard = function() {
+    if (root) {
+      const regex = new RegExp(`(^${root}|.brd$|.brd.html$)`, 'g');
+      traversy(root, exts, (path) => {
+        const key = path.replace(regex, '');
+        cache[key] = fs.readFileSync(path, 'utf8');
+        pathMap[key] = path;
+      });
+    }
+  }
 
   Beard.prototype = {
     render: (path, data = {}) => {
@@ -29,6 +39,17 @@ module.exports = function(cache = {}, resolve = (path, parentPath) => path) {
       return compiled(path)(context);
     }
   };
+
+  function resolvePath(path, parentPath) {
+    if (path.startsWith('/')) {
+      return path;
+    } else if (path.startsWith('~')) {
+      return path.replace(/^\~/, home);
+    } else {
+      const currentDir = parentPath.replace(/\/[^\/]+$/, '');
+      return normalize(`${currentDir}/${path}`);
+    }
+  }
 
   const exps = {
     extends:    (/\{{extends\s\'([^}}]+?)\'\}}/g),
@@ -87,8 +108,10 @@ module.exports = function(cache = {}, resolve = (path, parentPath) => path) {
   }
 
   function compiled(path, parentPath) {
-    const fullPath = resolve(path, parentPath);
-    const str = cache[fullPath];
+    const fullPath = resolvePath(path, parentPath);
+    const str = process.env === 'production'
+      ? cache[fullPath]
+      : fs.readFileSync(pathMap[fullPath], 'utf8');
     let key = hash(str);
 
     if (!fnCache[key]) {
