@@ -17,6 +17,9 @@
   "scripts": {
     "test": "mocha"
   },
+  "dependencies": {
+    "traversy": "0.0.2"
+  },
   "devDependencies": {
     "mocha": "4.1.0",
     "chai": "4.1.2",
