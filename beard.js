@@ -54,12 +54,10 @@ module.exports = function(cache = {}, resolve = (path, parentPath) => path) {
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
     end:        () => '}',
-
     for: (_, key, value, object) => {
       if (!value) key = (value = key, 'iterator' + iterator++);
       return `for (var ${key} in ${object}){ var ${value} = ${object}[${key}];`;
     },
-
     each: (_, iter, value, array) => {
       if (!value) iter = (value = iter, 'iterator' + iterator++);
       const length = 'length' + iterator++;
