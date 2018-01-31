@@ -6,37 +6,36 @@ const beard = require('./beard');
 describe('Beard Rendering', function() {
   it('renders content', function() {
     const engine = beard({
-      'content': 'some content'
+      '/content': 'some content'
     });
     expect(engine.render('content')).to.equal('some content');
   });
 
   it('includes templates', function() {
     const engine = beard({
-      'content': 'some content',
-      'view': `header {{include 'content'}} footer`
+      '/content': 'some content',
+      '/view': `header {{include 'content'}} footer`
     });
-    expect(engine.render('view')).to.
-      equal('header some content footer');
+    expect(engine.render('view')).to.equal('header some content footer');
   });
 
   it('renders blocks', function() {
     const engine = beard({
-      'block': '{{block footer}}a footer{{endblock}}some info - {{footer}}'
+      '/block': '{{block footer}}a footer{{endblock}}some info - {{footer}}'
     });
     expect(engine.render('block')).to.equal('some info - a footer');
   });
 
   it('extends layouts', function() {
     const engine = beard({
-      'view': `
+      '/view': `
         {{extends 'layout'}}
         page content
         {{block nav}}
           main navigation
         {{endblock}}
       `,
-      'layout': `
+      '/layout': `
         header
         {{nav}}
         -
@@ -50,14 +49,14 @@ describe('Beard Rendering', function() {
 
   it('handles for loops', function() {
     const engine = beard({
-      'view': 'names = {{for name in names}} {{name}}{{end}}'
+      '/view': 'names = {{for name in names}} {{name}}{{end}}'
     });
     expect(engine.render('view', {names: ['Bill', 'John', 'Dave']})).to.equal('names =  Bill John Dave');
   });
 
   it('handles each loops', function() {
     const engine = beard({
-      'each': 'people = {{each person in people}}{{person.name.first}} {{person.name.last}}! {{end}}'
+      '/each': 'people = {{each person in people}}{{person.name.first}} {{person.name.last}}! {{end}}'
     });
     const people = [
       {
@@ -78,7 +77,7 @@ describe('Beard Rendering', function() {
 
   it('handles conditionals', function() {
     const engine = beard({
-      'with': `
+      '/with': `
         {{extends 'layout'}}
         {{if navigation === 'full'}}
           {{block nav}}full navigation{{endblock}}
@@ -89,7 +88,7 @@ describe('Beard Rendering', function() {
         {{end}}
         {{nav}}
       `,
-      'layout': `
+      '/layout': `
         header
         {{nav}}
         -
@@ -104,29 +103,28 @@ describe('Beard Rendering', function() {
 
   it('handles strings', function() {
     const engine = beard({
-      'content': '{{content}}'
+      '/content': '{{content}}'
     });
     expect(engine.render('content', {content: 'some content'})).to.equal('some content');
   });
 
   it('handles numbers', function() {
     const engine = beard({
-      'value': '{{value}}'
+      '/value': '{{value}}'
     });
     expect(engine.render('value', {value: 36})).to.equal('36');
   });
 
   it('handles arrays', function() {
     const engine = beard({
-      'arrays': '{{each name in names}}{{name}} {{end}}'
+      '/arrays': '{{each name in names}}{{name}} {{end}}'
     });
-    expect(engine.render('arrays', {names: ['John Calvin', 'Charles Spurgeon']}))
-      .to.equal('John Calvin Charles Spurgeon ');
+    expect(engine.render('arrays', {names: ['John Calvin', 'Charles Spurgeon']})).to.equal('John Calvin Charles Spurgeon ');
   });
 
   it('handles arrays of objects', function() {
     const engine = beard({
-      'arrays': '{{each person in people}}{{person.name}} {{end}}'
+      '/arrays': '{{each person in people}}{{person.name}} {{end}}'
     });
     const data = {
       people: [
@@ -146,7 +144,7 @@ describe('Beard Rendering', function() {
 
   it('handles functions', function() {
     const engine = beard({
-      'functions': 'add = {{math.add(3, 10)}}, subtract = {{math.subtract(10, 5)}}'
+      '/functions': 'add = {{math.add(3, 10)}}, subtract = {{math.subtract(10, 5)}}'
     });
     expect(engine.render('functions', {math: {add: (x, y) => x + y, subtract: (x, y) => x - y }}))
       .to.equal('add = 13, subtract = 5');
@@ -154,7 +152,7 @@ describe('Beard Rendering', function() {
 
   it('handles objects', function() {
     const engine = beard({
-      'object': '{{resource.slug}}'
+      '/object': '{{resource.slug}}'
     });
     const data = {
       resource: {
@@ -166,39 +164,39 @@ describe('Beard Rendering', function() {
 
   it('handles null values', function() {
     const engine = beard({
-      'null_value': '{{value}}'
+      '/null_value': '{{value}}'
     });
     expect(engine.render('null_value', {value: null})).to.equal('null');
   });
 
   it('handles undefined values', function() {
     const engine = beard({
-      'undefined_value': '{{value}}'
+      '/undefined_value': '{{value}}'
     });
     expect(engine.render('undefined_value', {value: undefined})).to.equal('undefined');
   });
 
   it('handles sublayouts', function() {
     const engine = beard({
-      'layout': 'header | {{view}} | footer',
-      'sublayout': "{{extends 'layout'}}{{sidebar}} | {{view}} | {{main}}",
-      'view': "{{include 'partial'}}",
-      'partial': "{{extends 'sublayout'}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view"
+      '/layout': 'header | {{view}} | footer',
+      '/sublayout': "{{extends 'layout'}}{{sidebar}} | {{view}} | {{main}}",
+      '/view': "{{include 'partial'}}",
+      '/partial': "{{extends 'sublayout'}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view"
     });
     expect(engine.render('view')).to.equal('header | sidebar | hi im view | main | footer');
   });
 
   it('handles passing data to includes', function() {
     const engine = beard({
-      'view': `{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`,
-      'item': '{{title}} | {{item}}'
+      '/view': `{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`,
+      '/item': '{{title}} | {{item}}'
     });
     expect(engine.render('view')).to.equal('1st | 1, 2nd | 2');
   });
 
   it('ignores inline css and js', function() {
     const engine = beard({
-      'template': `
+      '/template': `
         <style>
         .hello {
           background-color: #f33
@@ -237,7 +235,7 @@ describe('Beard Rendering', function() {
 
   it('handles nested template data', function() {
     const engine = beard({
-      'layout': `
+      '/layout': `
         im inside layout
         {{each name in names}}
           {{name}}
@@ -245,13 +243,13 @@ describe('Beard Rendering', function() {
         {{insidePartialBlock}}
         {{view}}
       `,
-      'sublayout': `
+      '/sublayout': `
         {{extends 'layout'}}
         im in sublayout
         {{view}}
         {{foo}}
       `,
-      'view': `
+      '/view': `
         {{extends 'sublayout'}}
         im the view
         {{block foo}}
@@ -259,7 +257,7 @@ describe('Beard Rendering', function() {
         {{include('partial', {key: value})}}
         {{endblock}}
       `,
-      'partial': `
+      '/partial': `
         {{if key == 'a'}}
           {{block insidePartialBlock}}
             first partialblock
