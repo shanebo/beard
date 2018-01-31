@@ -279,39 +279,3 @@ describe('Beard Rendering', function() {
       .equal(' im inside layout Jack Black John second partialblock im in sublayout im the view im in foo block ');
   });
 });
-
-describe('Beard Path Resolve', function() {
-  const engine = beard({
-    '/apps/example/routes/details/template': "{{extends '../sublayout'}}details template",
-    '/apps/example/routes/sublayout': 'sublayout header | {{view}} | footer',
-    '/apps/example/routes/index/template': "index header | {{include '~/list'}}",
-    '/apps/example/list': 'the list',
-    '/apps/example/template': "{{extends '/layouts/layout'}}example template",
-    '/layouts/layout': "the layout | {{include 'header'}} | {{view}} | {{include 'footer'}}",
-    '/layouts/header': 'im the header',
-    '/layouts/footer': 'im the footer'
-  }, function(path, parentPath) {
-    if (path.startsWith('/')) {
-      return path;
-    } else if (path.startsWith('~')) {
-      return path.replace(/^\~/, '/apps/example');
-    } else {
-      const currentDir = parentPath.replace(/\/[^\/]+$/, '');
-      return normalize(`${currentDir}/${path}`);
-    }
-  });
-
-  it('processes relative paths', function() {
-    expect(engine.render('/apps/example/routes/details/template'))
-      .to.equal('sublayout header | details template | footer');
-  });
-
-  it('processes the paths with relative paths and absolute paths', function() {
-    expect(engine.render('/apps/example/template'))
-      .to.equal('the layout | im the header | example template | im the footer');
-  });
-
-  it('processes the paths with subapp (~) paths', function() {
-    expect(engine.render('/apps/example/routes/index/template')).to.equal('index header | the list');
-  });
-});
