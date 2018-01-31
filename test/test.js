@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const normalize = require('path').normalize;
 
-const beard = require('./beard');
+const beard = require('../beard');
 
 describe('Beard Rendering', function() {
   it('renders content', function() {
