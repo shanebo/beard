@@ -277,3 +277,10 @@ describe('Beard Rendering', function() {
       .equal(' im inside layout Jack Black John second partialblock im in sublayout im the view im in foo block ');
   });
 });
+
+describe('File Traversing', function() {
+  it('renders files from the file system', function() {
+    const engine = beard({}, { root: __dirname });
+    expect(engine.render('view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer ');
+  });
+});
