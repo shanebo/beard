@@ -10,15 +10,15 @@ function hash(str) {
   return hash >>> 0;
 }
 
-module.exports = function(cache = {}, root, home) {
+module.exports = function(cache = {}, opts = {}) {
   let fnCache = {};
   let pathMap = {};
   let iterator = 0;
 
   const Beard = function() {
-    if (root) {
-      const regex = new RegExp(`(^${root}|.brd$|.brd.html$)`, 'g');
-      traversy(root, exts, (path) => {
+    if (opts.root) {
+      const regex = new RegExp(`(^${opts.root}|.brd$|.brd.html$)`, 'g');
+      traversy(opts.root, exts, (path) => {
         const key = path.replace(regex, '');
         cache[key] = fs.readFileSync(path, 'utf8');
         pathMap[key] = path;
@@ -44,7 +44,7 @@ module.exports = function(cache = {}, root, home) {
     if (path.startsWith('/')) {
       return path;
     } else if (path.startsWith('~')) {
-      return path.replace(/^\~/, home);
+      return path.replace(/^\~/, opts.home);
     } else {
       const currentDir = parentPath.replace(/\/[^\/]+$/, '');
       return normalize(`${currentDir}/${path}`);
