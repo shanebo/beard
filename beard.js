@@ -10,7 +10,7 @@ function hash(str) {
   return hash >>> 0;
 }
 
-module.exports = function(cache = {}, opts = {}) {
+module.exports = function(cache = {}, opts = { cache: true }) {
   let fnCache = {};
   let pathMap = {};
   let iterator = 0;
@@ -109,7 +109,7 @@ module.exports = function(cache = {}, opts = {}) {
 
   function compiled(path, parentPath) {
     const fullPath = resolvePath(path, parentPath);
-    const str = process.env === 'production'
+    const str = opts.cache
       ? cache[fullPath]
       : fs.readFileSync(pathMap[fullPath], 'utf8');
     let key = hash(str);
