@@ -36,7 +36,7 @@ module.exports = function(cache = {}, opts = { cache: true }) {
         path: null
       };
 
-      return compiled(path)(context);
+      return compiled(path, '/')(context);
     }
   };
 
