@@ -18,13 +18,19 @@ const benchmarkTemplate = function(name, path, engine, times = 10000) {
   console.log('\n');
 }
 
-benchmarkTemplate('Simple Content', 'content', beard({'/content': 'some content'}));
+benchmarkTemplate('Simple Content', 'content', beard({
+  templates: {
+    '/content': 'some content'
+  }
+}));
 
 benchmarkTemplate(
   'Page with Layout',
   'page',
   beard({
-    '/page': "{{extends 'layout'}}page content{{block header}}the header{{endblock}}",
-    '/layout': 'top of page {{header}} -- {{view}} -- the footer'
+    templates: {
+      '/page': "{{extends 'layout'}}page content{{block header}}the header{{endblock}}",
+      '/layout': 'top of page {{header}} -- {{view}} -- the footer'
+    }
   })
 );

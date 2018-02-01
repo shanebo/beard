@@ -10,7 +10,10 @@ function hash(str) {
   return hash >>> 0;
 }
 
-module.exports = function(cache = {}, opts = { cache: true }) {
+module.exports = function(opts = {}) {
+  opts.cache = opts.cache || true;
+  opts.templates = opts.templates || {};
+
   let fnCache = {};
   let pathMap = {};
   let iterator = 0;
@@ -20,7 +23,7 @@ module.exports = function(cache = {}, opts = { cache: true }) {
       const regex = new RegExp(`(^${opts.root}|.brd$|.brd.html$)`, 'g');
       traversy(opts.root, exts, (path) => {
         const key = path.replace(regex, '');
-        cache[key] = fs.readFileSync(path, 'utf8');
+        opts.templates[key] = fs.readFileSync(path, 'utf8');
         pathMap[key] = path;
       });
     }
@@ -110,7 +113,7 @@ module.exports = function(cache = {}, opts = { cache: true }) {
   function compiled(path, parentPath) {
     const fullPath = resolvePath(path, parentPath);
     const str = opts.cache
-      ? cache[fullPath]
+      ? opts.templates[fullPath]
       : fs.readFileSync(pathMap[fullPath], 'utf8');
     let key = hash(str);
 
