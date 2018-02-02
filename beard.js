@@ -11,15 +11,16 @@ function hash(str) {
 }
 
 module.exports = function(opts = {}) {
+  const customTemplates = opts.templates;
   opts.cache = opts.cache || true;
-  opts.templates = opts.templates || {};
+  opts.templates = customTemplates || {};
 
   let fnCache = {};
   let pathMap = {};
   let iterator = 0;
 
   const Beard = function() {
-    if (opts.root) {
+    if (!customTemplates && opts.root) {
       const regex = new RegExp(`(^${opts.root}|.brd$|.brd.html$)`, 'g');
       traversy(opts.root, exts, (path) => {
         const key = path.replace(regex, '');
