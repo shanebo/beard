@@ -47,8 +47,6 @@ module.exports = function(opts = {}) {
   function resolvePath(path, parentPath) {
     if (path.startsWith('/')) {
       return path;
-    } else if (path.startsWith('~')) {
-      return path.replace(/^\~/, opts.home);
     } else {
       const currentDir = parentPath.replace(/\/[^\/]+$/, '');
       return normalize(`${currentDir}/${path}`);
