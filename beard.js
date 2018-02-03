@@ -61,6 +61,7 @@ module.exports = function(opts = {}) {
     includeFn:  (/^include\((\s?\'([^\(]*?)\'\,\s?\{([^\)]*)\})\)$/g),
     block:      (/^block\s+(.[^}]*)/g),
     blockEnd:   (/^endblock$/g),
+    encode:     (/^\:(.*)/),
     statement:  (/{{\s*([\S\s(?!}})]+?)\s*}}/g),
     if:         (/^if\s+([^]*)$/),
     elseIf:     (/^else\s+if\s+([^]*)$/),
@@ -75,6 +76,7 @@ module.exports = function(opts = {}) {
     includeFn:  (_, __, includePath, data) => `_context.locals.push({${data}}); _capture(compiled("${includePath}", path)(_context)); _context.locals.pop();`,
     block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
     blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
+    encode:     (_, statement) => `_encode(${statement});`,
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
@@ -97,6 +99,7 @@ module.exports = function(opts = {}) {
       .replace(exps.includeFn, parse.includeFn)
       .replace(exps.block, parse.block)
       .replace(exps.blockEnd, parse.blockEnd)
+      .replace(exps.encode, parse.encode)
       .replace(exps.end, parse.end)
       .replace(exps.else, parse.else)
       .replace(exps.elseIf, parse.elseIf)
@@ -155,6 +158,16 @@ module.exports = function(opts = {}) {
           } else {
             _buffer += str;
           }
+        }
+
+        function _encode(str) {
+          _capture(str
+            .replace(/&(?!\\w+;)/g, '&#38;')
+            .replace(/\</g, '&#60;')
+            .replace(/\>/g, '&#62;')
+            .replace(/\"/g, '&#34;')
+            .replace(/\'/g, '&#39;')
+            .replace(/\\//g, '&#47;'));
         }
 
         for (var prop in _context.globals) {

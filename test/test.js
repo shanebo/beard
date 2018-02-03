@@ -312,6 +312,16 @@ describe('Beard Rendering', function() {
     expect(engine.render('view', {names: ['Jack', 'Black', 'John'], value: 'b'}).replace(/\s+/g, ' ')).to
       .equal(' im inside layout Jack Black John second partialblock im in sublayout im the view im in foo block ');
   });
+
+  it('encodes html', function() {
+    const engine = beard({
+      templates: {
+        '/encode': '{{:value}}'
+      }
+    });
+    expect(engine.render('encode', {value: 'result&amp;script<script>alert("hi\'");</script>'}))
+      .to.equal('result&amp;script&#60;script&#62;alert(&#34;hi&#39;&#34;);&#60;&#47;script&#62;');
+  });
 });
 
 describe('File Traversing', function() {

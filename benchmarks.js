@@ -34,3 +34,13 @@ benchmarkTemplate(
     }
   })
 );
+
+benchmarkTemplate(
+  'Escaped Content',
+  'escape',
+  beard({
+    templates: {
+      '/escape': "{{:'<script>alert('this\'')</script>'}"
+    }
+  })
+);
