@@ -10,6 +10,8 @@ function hash(str) {
   return hash >>> 0;
 }
 
+const cleanWhitespace = str => str.replace(/\s+/g, ' ').trim();
+
 module.exports = function(opts = {}) {
   opts.cache = opts.cache != undefined ? opts.cache : true;
   opts.templates = opts.templates || {};
@@ -23,7 +25,8 @@ module.exports = function(opts = {}) {
       const regex = new RegExp(`(^${opts.root}|.brd$|.brd.html$)`, 'g');
       traversy(opts.root, exts, (path) => {
         const key = path.replace(regex, '');
-        opts.templates[key] = fs.readFileSync(path, 'utf8');
+        const body = fs.readFileSync(path, 'utf8');
+        opts.templates[key] = opts.cache ? cleanWhitespace(body) : body;
         pathMap[key] = path;
       });
     }
@@ -116,7 +119,7 @@ module.exports = function(opts = {}) {
     const str = opts.cache
       ? opts.templates[fullPath]
       : fs.readFileSync(pathMap[fullPath], 'utf8');
-    let key = hash(str);
+    const key = hash(fullPath);
 
     if (!fnCache[key]) {
       fnCache[key] = compile(str, fullPath);
@@ -137,10 +140,7 @@ module.exports = function(opts = {}) {
         return '';
       })
       .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
-      .replace(exps.statement, parser)
-      .replace(/\n/g, '\\n')
-      .replace(/\t/g, '\\t')
-      .replace(/\r/g, '\\r');
+      .replace(exps.statement, parser);
 
     const fn = `
       function _compiledFn(_context){
@@ -187,7 +187,7 @@ module.exports = function(opts = {}) {
     `.replace(/_capture\(""\);(\s+)?/g, '');
 
     try {
-      eval(fn);
+      eval(cleanWhitespace(fn));
       return _compiledFn.bind(_compiledFn);
     } catch (e) {
       throw new Error(`Compilation error: ${fn}`);
