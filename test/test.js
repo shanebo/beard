@@ -264,7 +264,7 @@ describe('Beard Rendering', function() {
           console.log(obj);
         }
         </script>
-      `);
+      `.replace(/\s+/g, ' '));
   });
 
   it('handles nested template data', function() {
@@ -329,6 +329,6 @@ describe('File Traversing', function() {
     const engine = beard({
       root: __dirname
     });
-    expect(engine.render('view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer ');
+    expect(engine.render('view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer');
   });
 });
