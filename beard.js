@@ -119,7 +119,7 @@ module.exports = function(opts = {}) {
     const str = opts.cache
       ? opts.templates[fullPath]
       : fs.readFileSync(pathMap[fullPath], 'utf8');
-    let key = hash(str);
+    const key = hash(fullPath);
 
     if (!fnCache[key]) {
       fnCache[key] = compile(str, fullPath);
