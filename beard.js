@@ -62,6 +62,7 @@ module.exports = function(opts = {}) {
     block:      (/^block\s+(.[^}]*)/g),
     blockEnd:   (/^endblock$/g),
     encode:     (/^\:(.*)/),
+    comment:    (/^\*.*\*$/g),
     statement:  (/{{\s*([\S\s(?!}})]+?)\s*}}/g),
     if:         (/^if\s+([^]*)$/),
     elseIf:     (/^else\s+if\s+([^]*)$/),
@@ -77,6 +78,7 @@ module.exports = function(opts = {}) {
     block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
     blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
     encode:     (_, statement) => `_encode(${statement});`,
+    comment:    () => '',
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
@@ -100,6 +102,7 @@ module.exports = function(opts = {}) {
       .replace(exps.block, parse.block)
       .replace(exps.blockEnd, parse.blockEnd)
       .replace(exps.encode, parse.encode)
+      .replace(exps.comment, parse.comment)
       .replace(exps.end, parse.end)
       .replace(exps.else, parse.else)
       .replace(exps.elseIf, parse.elseIf)
@@ -116,16 +119,15 @@ module.exports = function(opts = {}) {
 
   function compiled(path, parentPath) {
     const fullPath = resolvePath(path, parentPath);
-    const str = opts.cache
-      ? opts.templates[fullPath]
-      : fs.readFileSync(pathMap[fullPath], 'utf8');
-    const key = hash(fullPath);
-
-    if (!fnCache[key]) {
-      fnCache[key] = compile(str, fullPath);
+    if (opts.cache) {
+      const str = opts.templates[fullPath];
+      const key = hash(fullPath);
+      if (!fnCache[key]) fnCache[key] = compile(str, fullPath);
+      return fnCache[key];
+    } else {
+      const str = fs.readFileSync(pathMap[fullPath], 'utf8');
+      return compile(str, fullPath);
     }
-
-    return fnCache[key];
   }
 
   function compile(str, path) {
@@ -135,7 +137,7 @@ module.exports = function(opts = {}) {
       .replace(exps.extends, (_, path) => {
         layout = `
           _context.globals.view = _buffer;
-          _buffer = compiled("${path}", path)(_context);
+          _buffer = compiled('${path}', path)(_context);
         `;
         return '';
       })
@@ -144,8 +146,8 @@ module.exports = function(opts = {}) {
 
     const fn = `
       function _compiledFn(_context){
-        var path = "${path}";
-        var _buffer = "";
+        var path = '${path}';
+        var _buffer = '';
         var _blockName;
         var _blockCapture;
 
@@ -167,16 +169,26 @@ module.exports = function(opts = {}) {
             .replace(/\\//g, '&#47;'));
         }
 
+        function exists(varname) {
+          return eval('typeof ' + varname + ' !== "undefined";');
+        }
+
+        function put(varname) {
+          return exists(varname)
+            ? eval(varname)
+            : '';
+        }
+
         for (var prop in _context.globals) {
           if (_context.globals.hasOwnProperty(prop)) {
-            eval("var " + prop + " = _context.globals[prop]");
+            eval('var ' + prop + ' = _context.globals[prop]');
           }
         }
 
         var _locals = _context.locals[_context.locals.length - 1];
         for (var prop in _locals) {
           if (_locals.hasOwnProperty(prop)) {
-            eval("var " + prop + " = _locals[prop]");
+            eval('var ' + prop + ' = _locals[prop]');
           }
         }
 

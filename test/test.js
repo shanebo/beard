@@ -322,6 +322,51 @@ describe('Beard Rendering', function() {
     expect(engine.render('encode', {value: 'result&amp;script<script>alert("hi\'");</script>'}))
       .to.equal('result&amp;script&#60;script&#62;alert(&#34;hi&#39;&#34;);&#60;&#47;script&#62;');
   });
+
+  it('checks if undefined var exists', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{if exists('jack')}}{{jack}}{{else}}jack doesn't exist{{end}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal("jack doesn't exist");
+  });
+
+  it('checks if assigned var exists', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{block jack}}im jack{{endblock}}{{if exists('jack')}}{{jack}}{{else}}jack doesn't exist{{end}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal("im jack");
+  });
+
+  it('puts assigned var', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{block jack}}im jack{{endblock}}{{put('jack')}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal("im jack");
+  });
+
+  it('puts undefined var without throwing error', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{put('jack')}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal("");
+  });
+
+  it('does not render comments', function() {
+    const engine = beard({
+      templates: {
+        '/comments': 'some {{* a comment *}}content{{*another one*}}'
+      }
+    });
+    expect(engine.render('comments')).to.equal('some content');
+  });
 });
 
 describe('File Traversing', function() {
