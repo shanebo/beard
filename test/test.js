@@ -358,6 +358,15 @@ describe('Beard Rendering', function() {
     });
     expect(engine.render('content')).to.equal("");
   });
+
+  it('does not render comments', function() {
+    const engine = beard({
+      templates: {
+        '/comments': 'some {{* a comment *}}content{{*another one*}}'
+      }
+    });
+    expect(engine.render('comments')).to.equal('some content');
+  });
 });
 
 describe('File Traversing', function() {

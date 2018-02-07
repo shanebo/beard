@@ -62,6 +62,7 @@ module.exports = function(opts = {}) {
     block:      (/^block\s+(.[^}]*)/g),
     blockEnd:   (/^endblock$/g),
     encode:     (/^\:(.*)/),
+    comment:    (/^\*.*\*$/g),
     statement:  (/{{\s*([\S\s(?!}})]+?)\s*}}/g),
     if:         (/^if\s+([^]*)$/),
     elseIf:     (/^else\s+if\s+([^]*)$/),
@@ -77,6 +78,7 @@ module.exports = function(opts = {}) {
     block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
     blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
     encode:     (_, statement) => `_encode(${statement});`,
+    comment:    () => '',
     if:         (_, statement) => `if (${statement}) {`,
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
@@ -100,6 +102,7 @@ module.exports = function(opts = {}) {
       .replace(exps.block, parse.block)
       .replace(exps.blockEnd, parse.blockEnd)
       .replace(exps.encode, parse.encode)
+      .replace(exps.comment, parse.comment)
       .replace(exps.end, parse.end)
       .replace(exps.else, parse.else)
       .replace(exps.elseIf, parse.elseIf)
