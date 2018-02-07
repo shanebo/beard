@@ -134,7 +134,7 @@ module.exports = function(opts = {}) {
       .replace(exps.extends, (_, path) => {
         layout = `
           _context.globals.view = _buffer;
-          _buffer = compiled("${path}", path)(_context);
+          _buffer = compiled('${path}', path)(_context);
         `;
         return '';
       })
@@ -143,8 +143,8 @@ module.exports = function(opts = {}) {
 
     const fn = `
       function _compiledFn(_context){
-        var path = "${path}";
-        var _buffer = "";
+        var path = '${path}';
+        var _buffer = '';
         var _blockName;
         var _blockCapture;
 
@@ -178,14 +178,14 @@ module.exports = function(opts = {}) {
 
         for (var prop in _context.globals) {
           if (_context.globals.hasOwnProperty(prop)) {
-            eval("var " + prop + " = _context.globals[prop]");
+            eval('var ' + prop + ' = _context.globals[prop]');
           }
         }
 
         var _locals = _context.locals[_context.locals.length - 1];
         for (var prop in _locals) {
           if (_locals.hasOwnProperty(prop)) {
-            eval("var " + prop + " = _locals[prop]");
+            eval('var ' + prop + ' = _locals[prop]');
           }
         }
 
