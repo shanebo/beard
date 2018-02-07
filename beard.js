@@ -116,16 +116,15 @@ module.exports = function(opts = {}) {
 
   function compiled(path, parentPath) {
     const fullPath = resolvePath(path, parentPath);
-    const str = opts.cache
-      ? opts.templates[fullPath]
-      : fs.readFileSync(pathMap[fullPath], 'utf8');
-    const key = hash(fullPath);
-
-    if (!fnCache[key]) {
-      fnCache[key] = compile(str, fullPath);
+    if (opts.cache) {
+      const str = opts.templates[fullPath];
+      const key = hash(fullPath);
+      if (!fnCache[key]) fnCache[key] = compile(str, fullPath);
+      return fnCache[key];
+    } else {
+      const str = fs.readFileSync(pathMap[fullPath], 'utf8');
+      return compile(str, fullPath);
     }
-
-    return fnCache[key];
   }
 
   function compile(str, path) {
