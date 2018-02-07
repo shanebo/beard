@@ -166,6 +166,16 @@ module.exports = function(opts = {}) {
             .replace(/\\//g, '&#47;'));
         }
 
+        function exists(varname) {
+          return eval('typeof ' + varname + ' !== "undefined";');
+        }
+
+        function put(varname) {
+          return exists(varname)
+            ? eval(varname)
+            : '';
+        }
+
         for (var prop in _context.globals) {
           if (_context.globals.hasOwnProperty(prop)) {
             eval("var " + prop + " = _context.globals[prop]");
