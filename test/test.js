@@ -219,11 +219,16 @@ describe('Beard Rendering', function() {
   it('handles passing data to includes', function() {
     const engine = beard({
       templates: {
-        '/view': `{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`,
-        '/item': '{{title}} | {{item}}'
+        '/view': `{{include 'item', {title: '1st', item: 1}}}, {{include 'item', {title: '2nd', item: 2}}}`,
+        '/item': '{{title}} | {{item}}',
+        '/multiline': `{{include 'item', {
+          title: 'multi',
+          item: 'line'
+        }}}`
       }
     });
     expect(engine.render('view')).to.equal('1st | 1, 2nd | 2');
+    expect(engine.render('multiline')).to.equal('multi | line');
   });
 
   it('ignores inline css and js', function() {
@@ -289,7 +294,7 @@ describe('Beard Rendering', function() {
           im the view
           {{block foo}}
           im in foo block
-          {{include('partial', {key: value})}}
+          {{include 'partial', {key: value}}}
           {{endblock}}
         `,
         '/partial': `

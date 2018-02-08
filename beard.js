@@ -57,13 +57,12 @@ module.exports = function(opts = {}) {
 
   const exps = {
     extends:    (/\{{extends\s\'([^}}]+?)\'\}}/g),
-    include:    (/^include\s\'([^\(]*?)\'$/g),
-    includeFn:  (/^include\((\s?\'([^\(]*?)\'\,\s?\{([^\)]*)\})\)$/g),
+    include:    (/^include\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/gm),
     block:      (/^block\s+(.[^}]*)/g),
     blockEnd:   (/^endblock$/g),
     encode:     (/^\:(.*)/),
     comment:    (/^\*.*\*$/g),
-    statement:  (/{{\s*([\S\s(?!}})]+?)\s*}}/g),
+    statement:  (/{{\s*([\S\s(?!}})]+?)\s*}}(?!\})/g),
     if:         (/^if\s+([^]*)$/),
     elseIf:     (/^else\s+if\s+([^]*)$/),
     else:       (/^else$/),
@@ -73,8 +72,6 @@ module.exports = function(opts = {}) {
   };
 
   const parse = {
-    include:    (_, includePath) => `_capture(compiled("${includePath}", path)(_context));`,
-    includeFn:  (_, __, includePath, data) => `_context.locals.push({${data}}); _capture(compiled("${includePath}", path)(_context)); _context.locals.pop();`,
     block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
     blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
     encode:     (_, statement) => `_encode(${statement});`,
@@ -83,6 +80,12 @@ module.exports = function(opts = {}) {
     elseIf:     (_, statement) => `} else if (${statement}) {`,
     else:       () => '} else {',
     end:        () => '}',
+    include:    (_, includePath, __, data) => {
+      data = data || '{}';
+      return `_context.locals.push(Object.assign(_context.locals[_context.locals.length - 1], ${data}));
+      _capture(compiled("${includePath}", path)(_context));
+      _context.locals.pop();`
+    },
     for: (_, key, value, object) => {
       if (!value) key = (value = key, 'iterator' + iterator++);
       return `for (var ${key} in ${object}){ var ${value} = ${object}[${key}];`;
