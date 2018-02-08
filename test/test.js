@@ -331,37 +331,55 @@ describe('Beard Rendering', function() {
   it('checks if undefined var exists', function() {
     const engine = beard({
       templates: {
-        '/content': `{{if exists('jack')}}{{jack}}{{else}}jack doesn't exist{{end}}`,
+        '/content': `{{exists jack}}jack does exist{{else}}jack does not exist{{end}}`,
       }
     });
-    expect(engine.render('content')).to.equal("jack doesn't exist");
+    expect(engine.render('content')).to.equal('jack does not exist');
   });
 
   it('checks if assigned var exists', function() {
     const engine = beard({
       templates: {
-        '/content': `{{block jack}}im jack{{endblock}}{{if exists('jack')}}{{jack}}{{else}}jack doesn't exist{{end}}`,
+        '/content': `{{block jack}}im jack{{endblock}}{{exists jack}}jack block exists{{else}}jack does not exist{{end}}`,
       }
     });
-    expect(engine.render('content')).to.equal("im jack");
+    expect(engine.render('content')).to.equal('jack block exists');
   });
 
   it('puts assigned var', function() {
     const engine = beard({
       templates: {
-        '/content': `{{block jack}}im jack{{endblock}}{{put('jack')}}`,
+        '/content': `{{block jack}}im jack{{endblock}}{{put jack}}`,
       }
     });
-    expect(engine.render('content')).to.equal("im jack");
+    expect(engine.render('content')).to.equal('im jack');
   });
 
   it('puts undefined var without throwing error', function() {
     const engine = beard({
       templates: {
-        '/content': `{{put('jack')}}`,
+        '/content': `{{put jack}}`,
       }
     });
-    expect(engine.render('content')).to.equal("");
+    expect(engine.render('content')).to.equal('');
+  });
+
+  it('gets asset path from relative path', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{asset '../path/to/file/jack.jpg'}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal('/path/to/file/jack.jpg');
+  });
+
+  it('gets asset path from absolute path', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{asset '/to/file/jack.jpg'}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal('/to/file/jack.jpg');
   });
 
   it('does not render comments', function() {
