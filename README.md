@@ -38,6 +38,7 @@ console.log(result); // returns 'Beards are itchy.'
 - **root** (string) - The absolute path to the root directory where all templates are stored. If you provide a root directory, beard will create your templates cache for you.
 - **home** (string) - Relative path to home directory (used via `'~'` in paths, E.g. `'~/layout'`).
 - **cache** (boolean) - Set to `false` to disable caching of template files. Defaults to `true`.
+- **asset** (function) - Callback used for `asset` tag. Looks up asset paths. See asset example below.
 
 ### Render Arguments
 
@@ -69,7 +70,11 @@ Includes a template, can optionally pass locals.
 
 ```
 {{include 'template'}}
-{{include('template', {arg: 'val', arg2: 'val2'})}}
+{{include 'template', {arg: 'val', arg2: 'val2'}}}
+{{include 'template', {
+  arg1: 'val1',
+  arg2: 'val2'
+}}}
 ```
 
 ### extends
@@ -101,8 +106,45 @@ Returns:
 </html>
 ```
 
+### asset
+Assets are used to reference external files. You can control and modify the behavior of the tag via
+the `assets` callback option.
+
+```
+engine = beard({
+  asset: path => '/assets/' + path
+});
+```
+
+Used in a template:
+
+```
+<html>
+<head><link rel="stylesheet" type="text/css" href="{{asset 'styles.css'}}"></head>
+</html>
+```
+
+Returns:
+
+```
+<html>
+<head><link rel="stylesheet" type="text/css" href="/assets/styles.css"></head>
+</html>
+```
+
+### put
+
+The put tag outputs a local variable or a block, or an empty string if the value doesn't exist.
+
+```
+{{put foo}}
+```
+
+This will output the value of `foo`, if defined, or a blank string if not. Conversely, accessing it
+directly, such as `{{foo}}` would raise an error if it were undefined.
+
 ### block
-Makes content available as variable name.
+Make content available for rendering in any context (such as an extended layout or an included partial.)
 
 ```
 {{block middle}}
@@ -123,6 +165,35 @@ Top
 Middle
 Bottom
 ```
+
+You can also conditionally check if a block is set.
+
+```
+{{block cart}}
+  everything you have put in your cart...
+{{endblock}}
+
+// another template
+{{exists cart}}
+  {{cart}}
+{{else}}
+  Your cart is empty.
+{{end}}
+```
+
+Will returns:
+
+```
+everything you have put in your cart...
+```
+
+Using `put` is a simple way to output the block content if you are unsure if it has been set:
+
+```
+{{put header}}
+```
+
+This will output an empty string if the header has not been set.
 
 ### conditionals
 
