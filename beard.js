@@ -10,8 +10,8 @@ function hash(str) {
   return hash >>> 0;
 }
 
-const _cleanWhitespace = str => str.replace(/\s+/g, ' ').trim();
-const _getDir = path => path.replace(/\/[^\/]+$/, '');
+const cleanWhitespace = str => str.replace(/\s+/g, ' ').trim();
+const getDir = path => path.replace(/\/[^\/]+$/, '');
 
 module.exports = function(opts = {}) {
   // have defaults that we merge the opts passed into with
@@ -35,7 +35,7 @@ module.exports = function(opts = {}) {
       traversy(opts.root, exts, (path) => {
         const key = path.replace(regex, '');
         const body = fs.readFileSync(path, 'utf8');
-        opts.templates[key] = opts.cache ? _cleanWhitespace(body) : body;
+        opts.templates[key] = opts.cache ? cleanWhitespace(body) : body;
         pathMap[key] = path;
       });
     }
@@ -47,19 +47,21 @@ module.exports = function(opts = {}) {
       return compiled(path, '/')({
         globals: {},
         locals: [data],
-        path: null
+        path: null,
+        compiled,
+        asset
       });
     }
   };
 
-  function _resolvePath(path, parentPath) {
+  function resolvePath(path, parentPath) {
     return path.startsWith('/')
       ? path
-      : normalize(`${_getDir(parentPath)}/${path}`);
+      : normalize(`${getDir(parentPath)}/${path}`);
   }
 
-  function _asset(p, path) {
-    const absolutePath = _resolvePath(p, path);
+  function asset(p, path) {
+    const absolutePath = resolvePath(p, path);
     return opts.asset(absolutePath) || absolutePath;
   }
 
@@ -85,7 +87,7 @@ module.exports = function(opts = {}) {
   const parse = {
     block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
     blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
-    asset:      (_, path) => `_capture(_asset("${path}", path));`,
+    asset:      (_, path) => `_capture(_context.asset("${path}", _context.path));`,
     put:        (_, varname) => `_capture(typeof ${varname} !== "undefined" ? ${varname} : "");`,
     exists:     (_, varname) => `if (typeof ${varname} !== "undefined") {`,
     encode:     (_, statement) => `_encode(${statement});`,
@@ -98,7 +100,7 @@ module.exports = function(opts = {}) {
       data = data || '{}';
       return `
         _context.locals.push(Object.assign(_context.locals[_context.locals.length - 1], ${data}));
-        _capture(compiled("${includePath}", path)(_context));
+        _capture(_context.compiled("${includePath}", _context.path)(_context));
         _context.locals.pop();
       `;
     },
@@ -126,7 +128,7 @@ module.exports = function(opts = {}) {
   }
 
   function compiled(path, parentPath) {
-    const fullPath = _resolvePath(path, parentPath);
+    const fullPath = resolvePath(path, parentPath);
     if (opts.cache) {
       const str = opts.templates[fullPath];
       const key = hash(fullPath);
@@ -138,14 +140,14 @@ module.exports = function(opts = {}) {
     }
   }
 
-  function compile(str, path) {
+  function compile(str, currentPath) {
     let layout = '';
 
     str = str
       .replace(exps.extends, (_, path) => {
         layout = `
           _context.globals.view = _buffer;
-          _buffer = compiled('${path}', path)(_context);
+          _buffer = _context.compiled('${path}', '${currentPath}')(_context);
         `;
         return '';
       })
@@ -153,7 +155,6 @@ module.exports = function(opts = {}) {
       .replace(exps.statement, parser);
 
     const fn = `
-      function _compiledFn(_context){
         var _buffer = '';
         var _blockName;
         var _blockCapture;
@@ -189,15 +190,15 @@ module.exports = function(opts = {}) {
           }
         }
 
+        _context.path = '${currentPath}';
+
         _capture("${str}");
         ${layout}
         return _buffer;
-      }
     `.replace(/_capture\(""\);(\s+)?/g, '');
 
     try {
-      eval(_cleanWhitespace(fn));
-      return _compiledFn;
+      return new Function('_context', cleanWhitespace(fn));
     } catch (e) {
       throw new Error(`Compilation error: ${fn}`);
     }
