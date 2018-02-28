@@ -219,11 +219,16 @@ describe('Beard Rendering', function() {
   it('handles passing data to includes', function() {
     const engine = beard({
       templates: {
-        '/view': `{{include('item', {title: '1st', item: 1})}}, {{include('item', {title: '2nd', item: 2})}}`,
-        '/item': '{{title}} | {{item}}'
+        '/view': `{{include 'item', {title: '1st', item: 1}}}, {{include 'item', {title: '2nd', item: 2}}}`,
+        '/item': '{{title}} | {{item}}',
+        '/multiline': `{{include 'item', {
+          title: 'multi',
+          item: 'line'
+        }}}`
       }
     });
     expect(engine.render('view')).to.equal('1st | 1, 2nd | 2');
+    expect(engine.render('multiline')).to.equal('multi | line');
   });
 
   it('ignores inline css and js', function() {
@@ -289,7 +294,7 @@ describe('Beard Rendering', function() {
           im the view
           {{block foo}}
           im in foo block
-          {{include('partial', {key: value})}}
+          {{include 'partial', {key: value}}}
           {{endblock}}
         `,
         '/partial': `
@@ -326,37 +331,55 @@ describe('Beard Rendering', function() {
   it('checks if undefined var exists', function() {
     const engine = beard({
       templates: {
-        '/content': `{{if exists('jack')}}{{jack}}{{else}}jack doesn't exist{{end}}`,
+        '/content': `{{exists jack}}jack does exist{{else}}jack does not exist{{end}}`,
       }
     });
-    expect(engine.render('content')).to.equal("jack doesn't exist");
+    expect(engine.render('content')).to.equal('jack does not exist');
   });
 
   it('checks if assigned var exists', function() {
     const engine = beard({
       templates: {
-        '/content': `{{block jack}}im jack{{endblock}}{{if exists('jack')}}{{jack}}{{else}}jack doesn't exist{{end}}`,
+        '/content': `{{block jack}}im jack{{endblock}}{{exists jack}}jack block exists{{else}}jack does not exist{{end}}`,
       }
     });
-    expect(engine.render('content')).to.equal("im jack");
+    expect(engine.render('content')).to.equal('jack block exists');
   });
 
   it('puts assigned var', function() {
     const engine = beard({
       templates: {
-        '/content': `{{block jack}}im jack{{endblock}}{{put('jack')}}`,
+        '/content': `{{block jack}}im jack{{endblock}}{{put jack}}`,
       }
     });
-    expect(engine.render('content')).to.equal("im jack");
+    expect(engine.render('content')).to.equal('im jack');
   });
 
   it('puts undefined var without throwing error', function() {
     const engine = beard({
       templates: {
-        '/content': `{{put('jack')}}`,
+        '/content': `{{put jack}}`,
       }
     });
-    expect(engine.render('content')).to.equal("");
+    expect(engine.render('content')).to.equal('');
+  });
+
+  it('gets asset path from relative path', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{asset '../path/to/file/jack.jpg'}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal('/path/to/file/jack.jpg');
+  });
+
+  it('gets asset path from absolute path', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{asset '/to/file/jack.jpg'}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal('/to/file/jack.jpg');
   });
 
   it('does not render comments', function() {
