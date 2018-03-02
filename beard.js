@@ -23,16 +23,16 @@ class Beard {
     }
   }
 
-  compiled(path, context) {
-    context.path = resolvePath(path, context.path);
+  compiled(path, parentPath = '') {
+    path = resolvePath(path, parentPath);
     if (this.opts.cache) {
-      const str = this.opts.templates[context.path];
-      const key = hash(context.path);
-      if (!this.fnCache[key]) this.fnCache[key] = compile(str, context.path);
+      const str = this.opts.templates[path];
+      const key = hash(path);
+      if (!this.fnCache[key]) this.fnCache[key] = compile(str, path);
       return this.fnCache[key];
     } else {
-      const str = fs.readFileSync(this.pathMap[context.path], 'utf8');
-      return compile(str, context.path);
+      const str = fs.readFileSync(this.pathMap[path], 'utf8');
+      return compile(str, path);
     }
   }
 
@@ -46,10 +46,9 @@ class Beard {
       globals: {},
       locals: [data],
       compiled: this.compiled.bind(this),
-      asset: this.asset.bind(this),
-      path: ''
+      asset: this.asset.bind(this)
     }
-    return this.compiled(path, context)(context);
+    return this.compiled(path)(context);
   }
 }
 
@@ -99,7 +98,7 @@ function hash(str) {
 const parse = {
   block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
   blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
-  asset:      (_, path) => `_capture(_context.asset("${path}", _context.path));`,
+  asset:      (_, path) => `_capture(_context.asset("${path}", _currentPath));`,
   put:        (_, varname) => `_capture(typeof ${varname} !== "undefined" ? ${varname} : "");`,
   exists:     (_, varname) => `if (typeof ${varname} !== "undefined") {`,
   encode:     (_, statement) => `_encode(${statement});`,
@@ -112,7 +111,7 @@ const parse = {
     data = data || '{}';
     return `
       _context.locals.push(Object.assign(_context.locals[_context.locals.length - 1], ${data}));
-      _capture(_context.compiled("${includePath}", _context)(_context));
+      _capture(_context.compiled("${includePath}", _currentPath)(_context));
       _context.locals.pop();
     `;
   },
@@ -142,14 +141,14 @@ function parser(match, inner) {
   return `"); ${middle} _capture("`;
 }
 
-function compile(str, context) {
+function compile(str, path) {
   let layout = '';
 
   str = str
     .replace(exps.extends, (_, path) => {
       layout = `
         _context.globals.view = _buffer;
-        _buffer = _context.compiled('${path}', _context)(_context);
+        _buffer = _context.compiled('${path}', _currentPath)(_context);
       `;
       return '';
     })
@@ -157,6 +156,7 @@ function compile(str, context) {
     .replace(exps.statement, parser);
 
   const fn = `
+      var _currentPath = '${path}';
       var _buffer = '';
       var _blockName;
       var _blockCapture;
