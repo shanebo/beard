@@ -13,6 +13,15 @@ describe('Beard Rendering', function() {
     expect(engine.render('content')).to.equal('some content');
   });
 
+  it('handles errors', function() {
+    const engine = beard({
+      templates: {
+        '/content': '{{foo}}}'
+      }
+    });
+    expect(() => engine.render('content', {foo: 'value'})).to.throw(/\"\{\{foo\}\}\}\" in \/content on line 1/);
+  });
+
   it('includes templates', function() {
     const engine = beard({
       templates: {
