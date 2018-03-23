@@ -57,15 +57,20 @@ describe('Beard Rendering', function() {
 
   it('handles for loops', function() {
     const engine = beard({ templates: {
-      '/view': 'names = {{for name in names}} {{name}}{{end}}'
+      '/with-index': 'names = {{for name, index in names}} {{name}} - {{index}}{{end}}',
+      '/no-index': 'names = {{for name in names}} {{name}}{{end}}'
     }});
-    expect(engine.render('view', {names: ['Bill', 'John', 'Dave']})).to.equal('names =  Bill John Dave');
+    expect(engine.render('with-index', {names: ['Bill', 'John', 'Dave']})).
+      to.equal('names =  Bill - 0 John - 1 Dave - 2');
+    expect(engine.render('no-index', {names: ['Bill', 'John', 'Dave']})).
+      to.equal('names =  Bill John Dave');
   });
 
   it('handles each loops', function() {
     const engine = beard({
       templates: {
-        '/each': 'people = {{each person in people}}{{person.name.first}} {{person.name.last}}! {{end}}'
+        '/with-index': 'people = {{each person, index in people}}{{index}} - {{person.name.first}} {{person.name.last}}! {{end}}',
+        '/no-index': 'people = {{each person in people}}{{person.name.first}} {{person.name.last}}! {{end}}'
       }
     });
     const people = [
@@ -82,7 +87,10 @@ describe('Beard Rendering', function() {
         }
       }
     ];
-    expect(engine.render('each', {people: people})).to.equal('people = Charles Spurgeon! John Calvin! ');
+    expect(engine.render('with-index', {people: people})).
+      to.equal('people = 0 - Charles Spurgeon! 1 - John Calvin! ');
+    expect(engine.render('no-index', {people: people})).
+      to.equal('people = Charles Spurgeon! John Calvin! ');
   });
 
   it('handles conditionals', function() {
