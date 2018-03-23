@@ -115,18 +115,12 @@ const parse = {
       _context.locals.pop();
     `;
   },
-  for: (_, key, value, object) => {
-    if (!value) {
-      value = key;
-      key = `_iterator_${uniqueIterator(value)}`;
-    }
+  for: (_, value, key, object) => {
+    if (!key) key = `_iterator_${uniqueIterator(value)}`;
     return `for (var ${key} in ${object}) { var ${value} = ${object}[${key}];`;
   },
-  each: (_, iter, value, array) => {
-    if (!value) {
-      value = iter;
-      iter = `_iterator_${uniqueIterator(value)}`;
-    }
+  each: (_, value, iter, array) => {
+    if (!iter) iter = `_iterator_${uniqueIterator(value)}`;
     const length = `_iterator_${uniqueIterator(value)}`;
     return `for (var ${iter} = 0, ${length} = ${array}.length; ${iter} < ${length}; ${iter}++) { var ${value} = ${array}[${iter}];`;
   }
