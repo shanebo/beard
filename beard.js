@@ -3,6 +3,17 @@ const exts = '(.beard$)';
 const traversy = require('traversy');
 const normalize = require('path').normalize;
 
+class BeardError {
+  constructor(realError, template, lineNumber, tag) {
+    this.name = 'Beard Syntax Error';
+    this.message = `"{{${tag}}}" in ${template} on line ${lineNumber}`;
+    this.lineNumber = lineNumber;
+    this.fileName = template;
+    this.functionName = tag;
+    Error.captureStackTrace(this, compile);
+  }
+}
+
 class Beard {
   constructor(opts = {}) {
     if (!opts.hasOwnProperty('cache')) opts.cache = true;
@@ -52,6 +63,17 @@ class Beard {
   }
 }
 
+function validateSyntax(templateCode, tag, lineNumber, template) {
+  if (templateCode.match(/^.*\{[^\}]*$/)) templateCode += '}'; // append a } to templateCode that needs it
+  if (templateCode.match(/^\}/)) templateCode = 'if (false) {' + templateCode; // prepend a { to templateCode that needs it
+
+  try {
+    new Function(templateCode);
+  } catch(e) {
+    throw new BeardError(e, template, lineNumber, tag);
+  }
+}
+
 const cleanWhitespace = str => str.replace(/\s+/g, ' ').trim();
 const getDir = path => path.replace(/\/[^\/]+$/, '');
 const reducer = (inner, tag) => inner.replace(exps[tag], parse[tag]);
@@ -60,11 +82,11 @@ const tags = [
   'include', 'block', 'blockEnd',
   'asset', 'put', 'encode', 'comment',
   'if', 'exists', 'elseIf', 'else',
-  'for', 'each', 'end'
+  'for', 'each', 'end', 'extends'
 ];
 
 const exps = {
-  extends:    (/\{{extends\s\'([^}}]+?)\'\}}/g),
+  extends:    (/^extends\s\'([^}}]+?)\'$/g),
   include:    (/^include\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/m),
   asset:      (/^asset\s+\'(.+)\'$/),
   put:        (/^put\s+(.+)$/),
@@ -96,6 +118,7 @@ function hash(str) {
 }
 
 const parse = {
+  extends:    (_, path) =>  ` _context.globals.view = _buffer; _buffer = _context.compiled('${path}', _currentPath)(_context);`,
   block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
   blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
   asset:      (_, path) => `_capture(_context.asset("${path}", _currentPath));`,
@@ -126,28 +149,60 @@ const parse = {
   }
 };
 
-function parser(match, inner) {
-  const prev = inner;
-  inner = tags.reduce(reducer, inner);
-  const middle = inner === prev && !/^:/.test(inner)
-    ? `_capture(${inner});`
-    : inner.replace(/\t|\n|\r|^:/, '');
-  return `"); ${middle} _capture("`;
+function scanner(template, path) {
+  let statements = [];
+  const contentCompiler = (content) => statements.push(`_capture("${content}");`);
+  const tagCompiler = (tag, lineNumber) => {
+    const parsedStatement = parser(tag);
+    validateSyntax(parsedStatement, tag, lineNumber, path);
+    statements.push(parsedStatement);
+  };
+
+  exps.statement.lastIndex = 0;
+  let result = exps.statement.exec(template);
+  let lastIndex = 0;
+  let extendsResult;
+
+  while (result) {
+    const content = template.substring(lastIndex, result.index);
+    if (content.length > 0) contentCompiler(content);
+
+    const tag = result[1];
+    const extendsMatch = exps.extends.exec(tag);
+    if (extendsMatch) { // hold extends until the end
+      extendsResult = result;
+    } else {
+      const lineNumber = template.substring(0, result.index).split('\n').length;
+      tagCompiler(tag, lineNumber);
+    }
+
+    lastIndex = exps.statement.lastIndex;
+    result = exps.statement.exec(template);
+  }
+
+  if (lastIndex < template.length) {
+    const content = template.substring(lastIndex, template.length);
+    contentCompiler(content);
+  }
+
+  if (extendsResult) {
+    const lineNumber = template.substring(0, extendsResult.index).split('\n').length;
+    tagCompiler(extendsResult[1], lineNumber);
+  }
+
+  return statements;
+}
+
+function parser(statement) {
+  const parsedStatement = tags.reduce(reducer, statement);
+  return statement === parsedStatement
+    ? `_capture(${statement});`
+    : parsedStatement.replace(/\t|\n|\r/, '');
 }
 
 function compile(str, path) {
-  let layout = '';
-
-  str = str
-    .replace(exps.extends, (_, path) => {
-      layout = `
-        _context.globals.view = _buffer;
-        _buffer = _context.compiled('${path}', _currentPath)(_context);
-      `;
-      return '';
-    })
-    .replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"')
-    .replace(exps.statement, parser);
+  const templateCode = scanner(str, path).join(' ')
+    .replace(new RegExp('\\\\', 'g'), '\\\\');
 
   const fn = `
       var _currentPath = '${path}';
@@ -186,8 +241,7 @@ function compile(str, path) {
         }
       }
 
-      _capture("${str}");
-      ${layout}
+      ${templateCode}
       return _buffer;
   `.replace(/_capture\(""\);(\s+)?/g, '');
 
