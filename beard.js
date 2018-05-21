@@ -201,8 +201,7 @@ function parser(statement) {
 }
 
 function compile(str, path) {
-  const templateCode = scanner(str, path).join(' ')
-    .replace(new RegExp('\\\\', 'g'), '\\\\');
+  const templateCode = scanner(str.replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"'), path).join(' ');
 
   const fn = `
       var _currentPath = '${path}';

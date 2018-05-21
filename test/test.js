@@ -257,7 +257,7 @@ describe('Beard Rendering', function() {
           background-color: #f33
         }
         </style>
-
+        <div class="hello">greetings</div>
         <script>
         function inlineScript() {
           var obj = {
@@ -276,7 +276,7 @@ describe('Beard Rendering', function() {
           background-color: #f33
         }
         </style>
-
+        <div class="hello">greetings</div>
         <script>
         function inlineScript() {
           var obj = {
