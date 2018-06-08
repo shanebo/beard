@@ -426,10 +426,10 @@ describe('Beard Rendering', function() {
   it('gets asset path from relative path', function() {
     const engine = beard({
       templates: {
-        '/content': `{{asset '../path/to/file/jack.jpg'}}`,
+        '/views/content': `{{asset '../assets/jack.jpg'}}`,
       }
     });
-    expect(engine.render('content')).to.equal('/path/to/file/jack.jpg');
+    expect(engine.render('/views/content')).to.equal('/assets/jack.jpg');
   });
 
   it('gets asset path from absolute path', function() {
@@ -457,5 +457,17 @@ describe('File Traversing', function() {
       root: __dirname
     });
     expect(engine.render('view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer');
+  });
+});
+
+describe('Callbacks', function() {
+  it('allows a callback on the asset function', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `{{asset '../images/calvin.png'}}`,
+      },
+      asset: (path) => `/dist${path}`
+    });
+    expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
   });
 });
