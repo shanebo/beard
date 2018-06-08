@@ -142,10 +142,11 @@ const parse = {
     if (!key) key = `_iterator_${uniqueIterator(value)}`;
     return `for (var ${key} in ${object}) { var ${value} = ${object}[${key}];`;
   },
-  each: (_, value, iter, array) => {
+  each: (_, value, iter, arrValue) => {
     if (!iter) iter = `_iterator_${uniqueIterator(value)}`;
     const length = `_iterator_${uniqueIterator(value)}`;
-    return `for (var ${iter} = 0, ${length} = ${array}.length; ${iter} < ${length}; ${iter}++) { var ${value} = ${array}[${iter}];`;
+    const arr = `_iterator_${uniqueIterator(value)}`;
+    return `for (var ${iter} = 0, ${arr} = ${arrValue}, ${length} = ${arr}.length; ${iter} < ${length}; ${iter}++) { var ${value} = ${arr}[${iter}];`;
   }
 };
 

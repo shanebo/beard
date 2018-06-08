@@ -102,6 +102,23 @@ describe('Beard Rendering', function() {
       to.equal('people = Charles Spurgeon! John Calvin! ');
   });
 
+  it('handles each loops with embedded values', function() {
+    const engine = beard({
+      templates: {
+        '/loops': `
+        {{each sort in [{label: 'Up', val: 'asc'}, {label: 'Down', val: 'desc'}]}}
+          {{sort.label}} - {{sort.val}}
+        {{end}}
+
+        {{each count in ['Uno','Dos','Tres']}}
+          {{count}}
+        {{end}}
+        `
+      }
+    });
+    expect(engine.render('/loops').trim()).to.equal('Up - asc  Down - desc   Uno  Dos  Tres');
+  });
+
   it('handles conditionals', function() {
     const engine = beard({
       templates: {
