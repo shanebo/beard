@@ -75,6 +75,21 @@ describe('Beard Rendering', function() {
       to.equal('names =  Bill John Dave');
   });
 
+  it('handles for loops with embedded values', function() {
+      const engine = beard({ templates: {
+        '/loops': `
+        {{for name, index in ['Charles', 'John', 'Martin']}}
+          {{index}} - {{name}}
+        {{end}}
+
+        {{for sort in [{label: 'Up', val: 'asc'}, {label: 'Down', val: 'desc'}]}}
+          {{sort.label}} - {{sort.val}}
+        {{end}}
+        `
+      }});
+      expect(engine.render('/loops').trim()).to.equal('0 - Charles  1 - John  2 - Martin   Up - asc  Down - desc');
+  });
+
   it('handles each loops', function() {
     const engine = beard({
       templates: {
