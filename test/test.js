@@ -75,6 +75,21 @@ describe('Beard Rendering', function() {
       to.equal('names =  Bill John Dave');
   });
 
+  it('handles for loops with embedded values', function() {
+      const engine = beard({ templates: {
+        '/loops': `
+        {{for name, index in ['Charles', 'John', 'Martin']}}
+          {{index}} - {{name}}
+        {{end}}
+
+        {{for sort in [{label: 'Up', val: 'asc'}, {label: 'Down', val: 'desc'}]}}
+          {{sort.label}} - {{sort.val}}
+        {{end}}
+        `
+      }});
+      expect(engine.render('/loops').trim()).to.equal('0 - Charles  1 - John  2 - Martin   Up - asc  Down - desc');
+  });
+
   it('handles each loops', function() {
     const engine = beard({
       templates: {
@@ -100,6 +115,23 @@ describe('Beard Rendering', function() {
       to.equal('people = 0 - Charles Spurgeon! 1 - John Calvin! ');
     expect(engine.render('no-index', {people: people})).
       to.equal('people = Charles Spurgeon! John Calvin! ');
+  });
+
+  it('handles each loops with embedded values', function() {
+    const engine = beard({
+      templates: {
+        '/loops': `
+        {{each sort in [{label: 'Up', val: 'asc'}, {label: 'Down', val: 'desc'}]}}
+          {{sort.label}} - {{sort.val}}
+        {{end}}
+
+        {{each count in ['Uno','Dos','Tres']}}
+          {{count}}
+        {{end}}
+        `
+      }
+    });
+    expect(engine.render('/loops').trim()).to.equal('Up - asc  Down - desc   Uno  Dos  Tres');
   });
 
   it('handles conditionals', function() {
