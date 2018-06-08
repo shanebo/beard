@@ -470,4 +470,34 @@ describe('Callbacks', function() {
     });
     expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
   });
+
+  it('allows a callback on the component function', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `{{component '/simple', {type1: 'basic'}}}`,
+        '/components/simple': 'A {{type1}}, {{type2}} component'
+      },
+      component: (render, path, locals) => {
+        return render(`/components${path}`, {type1: locals.type1, type2: 'fun'});
+      }
+    });
+    expect(engine.render('/views/content')).to.equal('A basic, fun component');
+  });
+
+  it('allows components with extended views', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{component 'simple'}}`,
+        '/components/simple': `
+          {{extends 'layout'}}
+          A component
+        `,
+        '/components/layout': 'Header {{view}} Footer'
+      },
+      component: (render, path, locals) => {
+        return render(`/components${path}`);
+      }
+    });
+    expect(engine.render('/content')).to.equal('Header   A component  Footer');
+  });
 });

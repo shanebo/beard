@@ -18,6 +18,7 @@ class Beard {
   constructor(opts = {}) {
     if (!opts.hasOwnProperty('cache')) opts.cache = true;
     if (!opts.hasOwnProperty('asset')) opts.asset = path => false;
+    if (!opts.hasOwnProperty('component')) opts.component = (render, path, data) => false;
     opts.templates = opts.templates || {};
     this.opts = opts;
     this.fnCache = {};
@@ -52,12 +53,18 @@ class Beard {
     return this.opts.asset(absolutePath) || absolutePath;
   }
 
+  component(p, path, data) {
+    const absolutePath = resolvePath(p, path);
+    return this.opts.component(this.render.bind(this), absolutePath, data) || absolutePath;
+  }
+
   render(path, data = {}) {
     const context = {
       globals: {},
       locals: [data],
       compiled: this.compiled.bind(this),
-      asset: this.asset.bind(this)
+      asset: this.asset.bind(this),
+      component: this.component.bind(this)
     }
     return this.compiled(path)(context);
   }
@@ -79,15 +86,16 @@ const getDir = path => path.replace(/\/[^\/]+$/, '');
 const reducer = (inner, tag) => inner.replace(exps[tag], parse[tag]);
 const uniqueIterator = value => Math.random().toString().substring(2);
 const tags = [
-  'include', 'block', 'blockEnd',
-  'asset', 'put', 'encode', 'comment',
-  'if', 'exists', 'elseIf', 'else',
-  'for', 'each', 'end', 'extends'
+  'include', 'component', 'block',
+  'blockEnd', 'asset', 'put', 'encode',
+  'comment', 'if', 'exists', 'elseIf',
+  'else', 'for', 'each', 'end', 'extends'
 ];
 
 const exps = {
   extends:    (/^extends\s\'([^}}]+?)\'$/g),
   include:    (/^include\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/m),
+  component:  (/^component\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/m),
   asset:      (/^asset\s+\'(.+)\'$/),
   put:        (/^put\s+(.+)$/),
   exists:     (/^exists\s+(.+)$/),
@@ -138,6 +146,7 @@ const parse = {
       _context.locals.pop();
     `;
   },
+  component:    (_, componentPath, __, data) => `_capture(_context.component("${componentPath}", _currentPath, ${data || '{}'}));`,
   for: (_, value, key, objValue) => {
     if (!key) key = `_iterator_${uniqueIterator(value)}`;
     const obj = `_iterator_${uniqueIterator(value)}`;
