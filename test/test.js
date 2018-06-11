@@ -55,7 +55,7 @@ describe('Beard Rendering', function() {
           header
           {{nav}}
           -
-          {{view}}
+          {{content}}
           footer
         `
       }
@@ -152,7 +152,7 @@ describe('Beard Rendering', function() {
           header
           {{nav}}
           -
-          {{view}}
+          {{content}}
           footer
         `
       }
@@ -256,8 +256,8 @@ describe('Beard Rendering', function() {
   it('handles sublayouts', function() {
     const engine = beard({
       templates: {
-        '/layout': 'header | {{view}} | footer',
-        '/sublayout': "{{extends 'layout'}}{{sidebar}} | {{view}} | {{main}}",
+        '/layout': 'header | {{content}} | footer',
+        '/sublayout': "{{extends 'layout'}}{{sidebar}} | {{content}} | {{main}}",
         '/view': "{{include 'partial'}}",
         '/partial': "{{extends 'sublayout'}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view"
       }
@@ -330,12 +330,12 @@ describe('Beard Rendering', function() {
             {{name}}
           {{end}}
           {{insidePartialBlock}}
-          {{view}}
+          {{content}}
         `,
         '/sublayout': `
           {{extends 'layout'}}
           im in sublayout
-          {{view}}
+          {{content}}
           {{foo}}
         `,
         '/view': `
