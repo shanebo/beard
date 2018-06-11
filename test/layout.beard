@@ -1,3 +1,3 @@
 header
-| {{content}} |
+| {{put content}} |
 footer

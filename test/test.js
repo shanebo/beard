@@ -64,6 +64,16 @@ describe('Beard Rendering', function() {
       .to.equal(` header main navigation - page content footer `);
   });
 
+  it('extends layouts and renders the content with put', function() {
+    const engine = beard({
+      templates: {
+        '/view': `{{extends 'layout'}}page content`,
+        '/layout': `header {{put content}} footer`
+      }
+    });
+    expect(engine.render('view')).to.equal(`header page content footer`);
+  });
+
   it('handles for loops', function() {
     const engine = beard({ templates: {
       '/with-index': 'names = {{for name, index in names}} {{name}} - {{index}}{{end}}',
@@ -152,7 +162,7 @@ describe('Beard Rendering', function() {
           header
           {{nav}}
           -
-          {{content}}
+          {{put content}}
           footer
         `
       }
