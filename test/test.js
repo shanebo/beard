@@ -55,13 +55,23 @@ describe('Beard Rendering', function() {
           header
           {{nav}}
           -
-          {{view}}
+          {{content}}
           footer
         `
       }
     });
     expect(engine.render('view').replace(/\s+/g, ' ')) // replacing excessive whitespace for readability
       .to.equal(` header main navigation - page content footer `);
+  });
+
+  it('extends layouts and renders the content with put', function() {
+    const engine = beard({
+      templates: {
+        '/view': `{{extends 'layout'}}page content`,
+        '/layout': `header {{put content}} footer`
+      }
+    });
+    expect(engine.render('view')).to.equal(`header page content footer`);
   });
 
   it('handles for loops', function() {
@@ -152,7 +162,7 @@ describe('Beard Rendering', function() {
           header
           {{nav}}
           -
-          {{view}}
+          {{put content}}
           footer
         `
       }
@@ -256,8 +266,8 @@ describe('Beard Rendering', function() {
   it('handles sublayouts', function() {
     const engine = beard({
       templates: {
-        '/layout': 'header | {{view}} | footer',
-        '/sublayout': "{{extends 'layout'}}{{sidebar}} | {{view}} | {{main}}",
+        '/layout': 'header | {{content}} | footer',
+        '/sublayout': "{{extends 'layout'}}{{sidebar}} | {{content}} | {{main}}",
         '/view': "{{include 'partial'}}",
         '/partial': "{{extends 'sublayout'}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view"
       }
@@ -330,12 +340,12 @@ describe('Beard Rendering', function() {
             {{name}}
           {{end}}
           {{insidePartialBlock}}
-          {{view}}
+          {{content}}
         `,
         '/sublayout': `
           {{extends 'layout'}}
           im in sublayout
-          {{view}}
+          {{content}}
           {{foo}}
         `,
         '/view': `

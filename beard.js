@@ -118,7 +118,7 @@ function hash(str) {
 }
 
 const parse = {
-  extends:    (_, path) =>  ` _context.globals.view = _buffer; _buffer = _context.compiled('${path}', _currentPath)(_context);`,
+  extends:    (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled('${path}', _currentPath)(_context);`,
   block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
   blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
   asset:      (_, path) => `_capture(_context.asset("${path}", _currentPath));`,
