@@ -492,12 +492,45 @@ describe('Callbacks', function() {
           {{extends 'layout'}}
           A component
         `,
-        '/components/layout': 'Header {{view}} Footer'
+        '/components/layout': 'Header {{content}} Footer'
       },
       component: (render, path, locals) => {
         return render(`/components${path}`);
       }
     });
     expect(engine.render('/content')).to.equal('Header   A component  Footer');
+  });
+
+  it('allows a callback on the layout function', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `{{layout '/simple'}}Content`,
+        '/layouts/simple': 'Header {{put content}} Footer'
+      },
+      layout: (render, path, locals) => {
+        return render(`/layouts${path}`, locals);
+      }
+    });
+    expect(engine.render('/views/content')).to.equal('Header Content Footer');
+  });
+
+  it('allows layouts with blocks and locals to be available to the layout template', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `
+          {{layout '/base'}}
+          Content
+          {{block sidebar}}
+          The Sidebar
+          {{endblock}}
+        `,
+        '/layouts/base': 'Header {{title}} {{put sidebar}} {{put content}} Footer'
+      },
+      layout: (render, path, locals) => {
+        return render(`/layouts${path}`, locals);
+      }
+    });
+    expect(engine.render('/views/content', {title: 'Page'}).replace(/\s+/g, ' '))
+      .to.equal('Header Page The Sidebar Content Footer');
   });
 });
