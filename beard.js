@@ -2,6 +2,7 @@ const fs = require('fs');
 const exts = '(.beard$)';
 const traversy = require('traversy');
 const normalize = require('path').normalize;
+const clone = require('clone');
 
 class BeardError {
   constructor(realError, template, lineNumber, tag) {
@@ -18,6 +19,8 @@ class Beard {
   constructor(opts = {}) {
     if (!opts.hasOwnProperty('cache')) opts.cache = true;
     if (!opts.hasOwnProperty('asset')) opts.asset = path => false;
+    if (!opts.hasOwnProperty('component')) opts.component = (render, path, locals) => false;
+    if (!opts.hasOwnProperty('layout')) opts.layout = (render, path, locals) => false;
     opts.templates = opts.templates || {};
     this.opts = opts;
     this.fnCache = {};
@@ -52,12 +55,32 @@ class Beard {
     return this.opts.asset(absolutePath) || absolutePath;
   }
 
+  component(p, path, data) {
+    const absolutePath = resolvePath(p, path);
+    return this.opts.component(this.render.bind(this), absolutePath, data) || absolutePath;
+  }
+
+  layout(p, path, context) {
+    const absolutePath = resolvePath(p, path);
+
+    const data = clone(context.locals[context.locals.length - 1]);
+    for (var prop in context.globals) {
+      if (context.globals.hasOwnProperty(prop)) {
+        data[prop] = context.globals[prop];
+      }
+    }
+
+    return this.opts.layout(this.render.bind(this), absolutePath, data) || absolutePath;
+  }
+
   render(path, data = {}) {
     const context = {
       globals: {},
       locals: [data],
       compiled: this.compiled.bind(this),
-      asset: this.asset.bind(this)
+      asset: this.asset.bind(this),
+      component: this.component.bind(this),
+      layout: this.layout.bind(this)
     }
     return this.compiled(path)(context);
   }
@@ -79,15 +102,17 @@ const getDir = path => path.replace(/\/[^\/]+$/, '');
 const reducer = (inner, tag) => inner.replace(exps[tag], parse[tag]);
 const uniqueIterator = value => Math.random().toString().substring(2);
 const tags = [
-  'include', 'block', 'blockEnd',
-  'asset', 'put', 'encode', 'comment',
-  'if', 'exists', 'elseIf', 'else',
-  'for', 'each', 'end', 'extends'
+  'include', 'component', 'block', 'blockEnd',
+  'asset', 'put', 'encode', 'comment', 'if',
+  'exists', 'elseIf', 'else', 'for', 'each',
+  'end', 'extends', 'layout'
 ];
 
 const exps = {
   extends:    (/^extends\s\'([^}}]+?)\'$/g),
+  layout:     (/^layout\s\'([^}}]+?)\'$/g),
   include:    (/^include\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/m),
+  component:  (/^component\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/m),
   asset:      (/^asset\s+\'(.+)\'$/),
   put:        (/^put\s+(.+)$/),
   exists:     (/^exists\s+(.+)$/),
@@ -119,6 +144,7 @@ function hash(str) {
 
 const parse = {
   extends:    (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled('${path}', _currentPath)(_context);`,
+  layout:     (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.layout('${path}', _currentPath, _context);`,
   block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
   blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
   asset:      (_, path) => `_capture(_context.asset("${path}", _currentPath));`,
@@ -138,6 +164,7 @@ const parse = {
       _context.locals.pop();
     `;
   },
+  component:    (_, componentPath, __, data) => `_capture(_context.component("${componentPath}", _currentPath, ${data || '{}'}));`,
   for: (_, value, key, objValue) => {
     if (!key) key = `_iterator_${uniqueIterator(value)}`;
     const obj = `_iterator_${uniqueIterator(value)}`;
@@ -170,7 +197,7 @@ function scanner(template, path) {
     if (content.length > 0) contentCompiler(content);
 
     const tag = result[1];
-    const extendsMatch = exps.extends.exec(tag);
+    const extendsMatch = exps.extends.exec(tag) || exps.layout.exec(tag);
     if (extendsMatch) { // hold extends until the end
       extendsResult = result;
     } else {

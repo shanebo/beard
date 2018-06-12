@@ -18,7 +18,8 @@
     "test": "mocha"
   },
   "dependencies": {
-    "traversy": "0.0.2"
+    "traversy": "0.0.2",
+    "clone": "2.1.1"
   },
   "devDependencies": {
     "mocha": "4.1.0",

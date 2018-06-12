@@ -426,10 +426,10 @@ describe('Beard Rendering', function() {
   it('gets asset path from relative path', function() {
     const engine = beard({
       templates: {
-        '/content': `{{asset '../path/to/file/jack.jpg'}}`,
+        '/views/content': `{{asset '../assets/jack.jpg'}}`,
       }
     });
-    expect(engine.render('content')).to.equal('/path/to/file/jack.jpg');
+    expect(engine.render('/views/content')).to.equal('/assets/jack.jpg');
   });
 
   it('gets asset path from absolute path', function() {
@@ -457,5 +457,80 @@ describe('File Traversing', function() {
       root: __dirname
     });
     expect(engine.render('view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer');
+  });
+});
+
+describe('Callbacks', function() {
+  it('allows a callback on the asset function', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `{{asset '../images/calvin.png'}}`,
+      },
+      asset: (path) => `/dist${path}`
+    });
+    expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
+  });
+
+  it('allows a callback on the component function', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `{{component '/simple', {type1: 'basic'}}}`,
+        '/components/simple': 'A {{type1}}, {{type2}} component'
+      },
+      component: (render, path, locals) => {
+        return render(`/components${path}`, {type1: locals.type1, type2: 'fun'});
+      }
+    });
+    expect(engine.render('/views/content')).to.equal('A basic, fun component');
+  });
+
+  it('allows components with extended views', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{component 'simple'}}`,
+        '/components/simple': `
+          {{extends 'layout'}}
+          A component
+        `,
+        '/components/layout': 'Header {{content}} Footer'
+      },
+      component: (render, path, locals) => {
+        return render(`/components${path}`);
+      }
+    });
+    expect(engine.render('/content')).to.equal('Header   A component  Footer');
+  });
+
+  it('allows a callback on the layout function', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `{{layout '/simple'}}Content`,
+        '/layouts/simple': 'Header {{put content}} Footer'
+      },
+      layout: (render, path, locals) => {
+        return render(`/layouts${path}`, locals);
+      }
+    });
+    expect(engine.render('/views/content')).to.equal('Header Content Footer');
+  });
+
+  it('allows layouts with blocks and locals to be available to the layout template', function() {
+    const engine = beard({
+      templates: {
+        '/views/content': `
+          {{layout '/base'}}
+          Content
+          {{block sidebar}}
+          The Sidebar
+          {{endblock}}
+        `,
+        '/layouts/base': 'Header {{title}} {{put sidebar}} {{put content}} Footer'
+      },
+      layout: (render, path, locals) => {
+        return render(`/layouts${path}`, locals);
+      }
+    });
+    expect(engine.render('/views/content', {title: 'Page'}).replace(/\s+/g, ' '))
+      .to.equal('Header Page The Sidebar Content Footer');
   });
 });
