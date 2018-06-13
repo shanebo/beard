@@ -17,7 +17,6 @@ class BeardError {
 class Beard {
   constructor(opts = {}) {
     if (!opts.hasOwnProperty('cache')) opts.cache = true;
-    if (!opts.hasOwnProperty('asset')) opts.asset = path => false;
     opts.templates = opts.templates || {};
     this.opts = opts;
     this.fnCache = {};
@@ -31,6 +30,10 @@ class Beard {
         this.opts.templates[key] = this.opts.cache ? cleanWhitespace(body) : body;
         this.pathMap[key] = path;
       });
+    }
+
+    if (this.opts.customTags) {
+      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([^\\\s]+)(\\\s*,\\\s+([\\\s\\\S]+))?$");
     }
   }
 
@@ -47,9 +50,9 @@ class Beard {
     }
   }
 
-  asset(p, path) {
-    const absolutePath = resolvePath(p, path);
-    return this.opts.asset(absolutePath) || absolutePath;
+  customTag(name, path, parentPath, data) {
+    const resolvedPath = resolvePath(path, parentPath);
+    return this.opts.customTags[name](resolvedPath, data);
   }
 
   render(path, data = {}) {
@@ -57,7 +60,7 @@ class Beard {
       globals: {},
       locals: [data],
       compiled: this.compiled.bind(this),
-      asset: this.asset.bind(this)
+      customTag: this.customTag.bind(this)
     }
     return this.compiled(path)(context);
   }
@@ -80,15 +83,14 @@ const reducer = (inner, tag) => inner.replace(exps[tag], parse[tag]);
 const uniqueIterator = value => Math.random().toString().substring(2);
 const tags = [
   'include', 'block', 'blockEnd',
-  'asset', 'put', 'encode', 'comment',
-  'if', 'exists', 'elseIf', 'else',
-  'for', 'each', 'end', 'extends'
+  'put', 'encode', 'comment', 'if',
+  'exists', 'elseIf', 'else', 'for',
+  'each', 'end', 'extends', 'customTag'
 ];
 
 const exps = {
-  extends:    (/^extends\s\'([^}}]+?)\'$/g),
-  include:    (/^include\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/m),
-  asset:      (/^asset\s+\'(.+)\'$/),
+  extends:    (/^extends\s([^\s]+?)$/g),
+  include:    (/^include\s([^\s]+?)(\s*,\s+([\s\S]+))?$/m),
   put:        (/^put\s+(.+)$/),
   exists:     (/^exists\s+(.+)$/),
   block:      (/^block\s+(.[^}]*)/),
@@ -101,7 +103,8 @@ const exps = {
   else:       (/^else$/),
   for:        (/^for\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s+(.*)$/),
   each:       (/^each\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s(.*)$/),
-  end:        (/^end$/)
+  end:        (/^end$/),
+  customTag:  (/^(?!)$/)
 };
 
 function resolvePath(path, parentPath) {
@@ -118,10 +121,9 @@ function hash(str) {
 }
 
 const parse = {
-  extends:    (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled('${path}', _currentPath)(_context);`,
+  extends:    (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled(${path}, _currentPath)(_context);`,
   block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
   blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
-  asset:      (_, path) => `_capture(_context.asset("${path}", _currentPath));`,
   put:        (_, varname) => `_capture(typeof ${varname} !== "undefined" ? ${varname} : "");`,
   exists:     (_, varname) => `if (typeof ${varname} !== "undefined") {`,
   encode:     (_, statement) => `_encode(${statement});`,
@@ -130,11 +132,12 @@ const parse = {
   elseIf:     (_, statement) => `} else if (${statement}) {`,
   else:       () => '} else {',
   end:        () => '}',
+  customTag:   (_, name, path, __, data) => `_capture(_context.customTag("${name}", ${path}, _currentPath, ${data || '{}'}));`,
   include:    (_, includePath, __, data) => {
     data = data || '{}';
     return `
       _context.locals.push(Object.assign(_context.locals[_context.locals.length - 1], ${data}));
-      _capture(_context.compiled("${includePath}", _currentPath)(_context));
+      _capture(_context.compiled(${includePath}, _currentPath)(_context));
       _context.locals.pop();
     `;
   },
