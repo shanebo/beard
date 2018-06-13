@@ -33,7 +33,7 @@ class Beard {
     }
 
     if (this.opts.customTags) {
-      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+'(.+)'(\\\s*,\\\s+([\\\s\\\S]+))?$");
+      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([^\\\s]+)(\\\s*,\\\s+([\\\s\\\S]+))?$");
     }
   }
 
@@ -89,8 +89,8 @@ const tags = [
 ];
 
 const exps = {
-  extends:    (/^extends\s\'([^}}]+?)\'$/g),
-  include:    (/^include\s\'([^\(]*?)\'(\s*,\s+([\s\S]+))?$/m),
+  extends:    (/^extends\s([^\s]+?)$/g),
+  include:    (/^include\s([^\s]+?)(\s*,\s+([\s\S]+))?$/m),
   put:        (/^put\s+(.+)$/),
   exists:     (/^exists\s+(.+)$/),
   block:      (/^block\s+(.[^}]*)/),
@@ -121,7 +121,7 @@ function hash(str) {
 }
 
 const parse = {
-  extends:    (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled('${path}', _currentPath)(_context);`,
+  extends:    (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled(${path}, _currentPath)(_context);`,
   block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
   blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
   put:        (_, varname) => `_capture(typeof ${varname} !== "undefined" ? ${varname} : "");`,
@@ -132,12 +132,12 @@ const parse = {
   elseIf:     (_, statement) => `} else if (${statement}) {`,
   else:       () => '} else {',
   end:        () => '}',
-  customTag:  (_, name, path, __, data) => `_capture(_context.customTag("${name}", "${path}", _currentPath, ${data || '{}'}));`,
+  customTag:   (_, name, path, __, data) => `_capture(_context.customTag("${name}", ${path}, _currentPath, ${data || '{}'}));`,
   include:    (_, includePath, __, data) => {
     data = data || '{}';
     return `
       _context.locals.push(Object.assign(_context.locals[_context.locals.length - 1], ${data}));
-      _capture(_context.compiled("${includePath}", _currentPath)(_context));
+      _capture(_context.compiled(${includePath}, _currentPath)(_context));
       _context.locals.pop();
     `;
   },
