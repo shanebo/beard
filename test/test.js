@@ -423,24 +423,6 @@ describe('Beard Rendering', function() {
     expect(engine.render('content')).to.equal('');
   });
 
-  it('gets asset path from relative path', function() {
-    const engine = beard({
-      templates: {
-        '/views/content': `{{asset '../assets/jack.jpg'}}`,
-      }
-    });
-    expect(engine.render('/views/content')).to.equal('/assets/jack.jpg');
-  });
-
-  it('gets asset path from absolute path', function() {
-    const engine = beard({
-      templates: {
-        '/content': `{{asset '/to/file/jack.jpg'}}`,
-      }
-    });
-    expect(engine.render('content')).to.equal('/to/file/jack.jpg');
-  });
-
   it('does not render comments', function() {
     const engine = beard({
       templates: {
@@ -461,12 +443,14 @@ describe('File Traversing', function() {
 });
 
 describe('Callbacks', function() {
-  it('allows a callback on the asset function', function() {
+  it('allows callbacks to be set dynamically', function() {
     const engine = beard({
       templates: {
         '/views/content': `{{asset '../images/calvin.png'}}`,
       },
-      asset: (path) => `/dist${path}`
+      callbacks: {
+        asset: (path) => `/dist${path}`
+      }
     });
     expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
   });
