@@ -33,7 +33,7 @@ class Beard {
     }
 
     if (this.opts.customTags) {
-      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+'(.+)'$");
+      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+'(.+)'(\\\s*,\\\s+([\\\s\\\S]+))?$");
     }
   }
 
@@ -50,9 +50,9 @@ class Beard {
     }
   }
 
-  customTag(name, path, parentPath) {
+  customTag(name, path, parentPath, data) {
     const resolvedPath = resolvePath(path, parentPath);
-    return this.opts.customTags[name](resolvedPath);
+    return this.opts.customTags[name](resolvedPath, data);
   }
 
   render(path, data = {}) {
@@ -132,7 +132,7 @@ const parse = {
   elseIf:     (_, statement) => `} else if (${statement}) {`,
   else:       () => '} else {',
   end:        () => '}',
-  customTag:  (_, name, path) => `_capture(_context.customTag("${name}", "${path}", _currentPath));`,
+  customTag:  (_, name, path, __, data) => `_capture(_context.customTag("${name}", "${path}", _currentPath, ${data || '{}'}));`,
   include:    (_, includePath, __, data) => {
     data = data || '{}';
     return `

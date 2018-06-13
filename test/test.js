@@ -454,4 +454,18 @@ describe('Custom Tags', function() {
     });
     expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
   });
+
+  it('allows custom tags with data', function() {
+    const engine = beard({
+      templates: {
+        '/view': `{{asset '/calvin.png'}} page {{component 'simple', {title: 'Foo'}}}`,
+        '/components/simple': '{{title}} component'
+      },
+      customTags: {
+        asset: (path) => `/dist${path}`,
+        component: (path, data) => engine.render('/components' + path, data)
+      }
+    });
+    expect(engine.render('view')).to.equal('/dist/calvin.png page Foo component');
+  });
 });
