@@ -454,4 +454,18 @@ describe('Callbacks', function() {
     });
     expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
   });
+
+  it('allows callbacks with data', function() {
+    const engine = beard({
+      templates: {
+        '/view': `{{asset '/calvin.png'}} page {{component 'simple', {title: 'Foo'}}}`,
+        '/components/simple': '{{title}} component'
+      },
+      callbacks: {
+        asset: (path) => `/dist${path}`,
+        component: (path, data) => engine.render('/components' + path, data)
+      }
+    });
+    expect(engine.render('view')).to.equal('/dist/calvin.png page Foo component');
+  });
 });

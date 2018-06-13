@@ -33,7 +33,7 @@ class Beard {
     }
 
     if (this.opts.callbacks) {
-      exps.callback = new RegExp('^(' + Object.keys(this.opts.callbacks).join('|') + ")\\\s+'(.+)'$");
+      exps.callback = new RegExp('^(' + Object.keys(this.opts.callbacks).join('|') + ")\\\s+'(.+)'(\\\s*,\\\s+([\\\s\\\S]+))?$");
     }
   }
 
@@ -50,9 +50,9 @@ class Beard {
     }
   }
 
-  callback(name, path, parentPath) {
+  callback(name, path, parentPath, data) {
     const resolvedPath = resolvePath(path, parentPath);
-    return this.opts.callbacks[name](resolvedPath);
+    return this.opts.callbacks[name](resolvedPath, data);
   }
 
   render(path, data = {}) {
@@ -132,7 +132,7 @@ const parse = {
   elseIf:     (_, statement) => `} else if (${statement}) {`,
   else:       () => '} else {',
   end:        () => '}',
-  callback:   (_, name, path) => `_capture(_context.callback("${name}", "${path}", _currentPath));`,
+  callback:   (_, name, path, __, data) => `_capture(_context.callback("${name}", "${path}", _currentPath, ${data || '{}'}));`,
   include:    (_, includePath, __, data) => {
     data = data || '{}';
     return `
