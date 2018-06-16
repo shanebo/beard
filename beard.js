@@ -33,7 +33,7 @@ class Beard {
     }
 
     if (this.opts.customTags) {
-      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([^\\\s]+)(\\\s*,\\\s+([\\\s\\\S]+))?$");
+      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([\\\s\\\S]+)$");
     }
   }
 
@@ -50,9 +50,16 @@ class Beard {
     }
   }
 
-  customTag(name, path, parentPath, data) {
+  customTag(name, parentPath, path, data = {}) {
     const resolvedPath = resolvePath(path, parentPath);
     return this.opts.customTags[name](resolvedPath, data);
+  }
+
+  include(context, parentPath, path, data = {}) {
+    context.locals.push(Object.assign(context.locals[context.locals.length - 1], data));
+    const result = context.compiled(path, parentPath)(context);
+    context.locals.pop();
+    return result;
   }
 
   render(path, data = {}) {
@@ -60,6 +67,7 @@ class Beard {
       globals: {},
       locals: [data],
       compiled: this.compiled.bind(this),
+      include: this.include.bind(this),
       customTag: this.customTag.bind(this)
     }
     return this.compiled(path)(context);
@@ -89,8 +97,8 @@ const tags = [
 ];
 
 const exps = {
-  extends:    (/^extends\s([^\s]+?)$/g),
-  include:    (/^include\s([^\s]+?)(\s*,\s+([\s\S]+))?$/m),
+  extends:    (/^extends\s(.+)$/g),
+  include:    (/^include\s([\s\S]+)$/m),
   put:        (/^put\s+(.+)$/),
   exists:     (/^exists\s+(.+)$/),
   block:      (/^block\s+(.[^}]*)/),
@@ -132,15 +140,8 @@ const parse = {
   elseIf:     (_, statement) => `} else if (${statement}) {`,
   else:       () => '} else {',
   end:        () => '}',
-  customTag:   (_, name, path, __, data) => `_capture(_context.customTag("${name}", ${path}, _currentPath, ${data || '{}'}));`,
-  include:    (_, includePath, __, data) => {
-    data = data || '{}';
-    return `
-      _context.locals.push(Object.assign(_context.locals[_context.locals.length - 1], ${data}));
-      _capture(_context.compiled(${includePath}, _currentPath)(_context));
-      _context.locals.pop();
-    `;
-  },
+  customTag:   (_, name, args) => `_capture(_context.customTag("${name}", _currentPath, ${args}));`,
+  include:    (_, args) => `_capture(_context.include(_context, _currentPath, ${args}));`,
   for: (_, value, key, objValue) => {
     if (!key) key = `_iterator_${uniqueIterator(value)}`;
     const obj = `_iterator_${uniqueIterator(value)}`;

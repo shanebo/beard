@@ -35,13 +35,14 @@ describe('Beard Rendering', function() {
   it('includes templates with dynamic paths', function() {
     const engine = beard({
       templates: {
-        '/view': 'header {{include partial}} {{include `/includes/${support}`}}',
+        '/view': "header {{include partial}} {{include `/includes/${support}`}} {{include `/includes/${other.replace('_', '-')}`}}",
         '/includes/content': 'Partial Content',
-        '/includes/footer': 'Footer'
+        '/includes/footer': 'Footer',
+        '/includes/other-content': 'Content!'
       }
     });
-    expect(engine.render('view', {partial: '/includes/content', support: 'footer'}))
-      .to.equal('header Partial Content Footer');
+    expect(engine.render('view', {partial: '/includes/content', support: 'footer', other: 'other_content'}))
+      .to.equal('header Partial Content Footer Content!');
   });
 
   it('renders blocks', function() {
@@ -82,11 +83,14 @@ describe('Beard Rendering', function() {
         '/view': '{{extends layout}}page',
         '/base': 'header {{put content}} footer',
         '/page': '{{extends `/layouts/${layout}`}}the page',
-        '/layouts/simple': 'a layout {{put content}} bottom'
+        '/layouts/simple': 'a layout {{put content}} bottom',
+        '/content': "{{extends layout.replace('_', '-')}}content",
+        '/base-layout': 'header {{put content}} footer'
       }
     });
     expect(engine.render('view', {layout: 'base'})).to.equal('header page footer');
     expect(engine.render('page', {layout: 'simple'})).to.equal('a layout the page bottom');
+    expect(engine.render('content', {layout: 'base_layout'})).to.equal('header content footer');
   });
 
   it('extends layouts and renders the content with put', function() {
@@ -497,15 +501,16 @@ describe('Custom Tags', function() {
   it('allows custom tags with dynamic paths', function() {
     const engine = beard({
       templates: {
-        '/view': "{{asset assetName}} page {{component `/components/${componentName}`, {title: 'Foo'}}}",
-        '/components/simple': '{{title}} component'
+        '/view': "{{asset assetName}} page {{component `/components/${componentName}`, {title: 'Foo'}}} {{component other.replace('_', '-'), {name: 'Foo Bar'}}}",
+        '/components/simple': '{{title}} component',
+        '/foo-bar': 'The {{name}}'
       },
       customTags: {
         asset: (path) => path,
         component: (path, data) => engine.render(path, data)
       }
     });
-    expect(engine.render('view', {assetName: 'calvin.png', componentName: 'simple'}))
-      .to.equal('/calvin.png page Foo component');
+    expect(engine.render('view', {assetName: 'calvin.png', componentName: 'simple', other: 'foo_bar'}))
+      .to.equal('/calvin.png page Foo component The Foo Bar');
   });
 });
