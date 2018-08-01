@@ -54,6 +54,22 @@ describe('Beard Rendering', function() {
     expect(engine.render('block')).to.equal('some info - a footer');
   });
 
+  it('renders blocks inside blocks', function() {
+    const engine = beard({
+      templates: {
+        '/block': `
+          {{block footer}}
+            a footer
+            {{block sub}}
+              sub{{block name}}bill{{endblock}}info
+            {{endblock}}
+          {{endblock}}
+          {{footer}} -- {{name}} -- {{sub}}`
+      }
+    });
+    expect(engine.render('block').replace(/\s+/g, ' ')).to.equal(' a footer -- bill -- subinfo ');
+  });
+
   it('extends layouts', function() {
     const engine = beard({
       templates: {
