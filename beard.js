@@ -130,8 +130,8 @@ function hash(str) {
 
 const parse = {
   extends:    (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled(${path}, _currentPath)(_context);`,
-  block:      (_, blockname) => `_blockName = "${blockname}"; _blockCapture = "";`,
-  blockEnd:   () => 'eval(`var ${_blockName} = _blockCapture`); _context.globals[_blockName] = _blockCapture; _blockName = null;',
+  block:      (_, blockname) => `_blockNames.push("${blockname}"); _blockCaptures.push('');`,
+  blockEnd:   () => 'eval(`var ${_blockNames[_blockNames.length - 1]} = _blockCaptures[_blockCaptures.length - 1]`); _context.globals[_blockNames[_blockNames.length - 1]] = _blockCaptures[_blockCaptures.length - 1]; _blockNames.pop(); _blockCaptures.pop();',
   put:        (_, varname) => `_capture(typeof ${varname} !== "undefined" ? ${varname} : "");`,
   exists:     (_, varname) => `if (typeof ${varname} !== "undefined") {`,
   encode:     (_, statement) => `_encode(${statement});`,
@@ -212,12 +212,12 @@ function compile(str, path) {
   const fn = `
       var _currentPath = '${path}';
       var _buffer = '';
-      var _blockName;
-      var _blockCapture;
+      var _blockNames = [];
+      var _blockCaptures = [];
 
       function _capture(str) {
-        if (_blockName) {
-          _blockCapture += str;
+        if (_blockNames.length > 0) {
+          _blockCaptures[_blockCaptures.length - 1] += str;
         } else {
           _buffer += str;
         }
