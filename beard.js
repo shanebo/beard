@@ -33,7 +33,14 @@ class Beard {
     }
 
     if (this.opts.customTags) {
-      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([\\\s\\\S]+)$");
+      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([^,]+)(,\\\s*((?!(,\\\s*content)|(content\\\s*$))[\\\s\\\S])*)?$");
+    }
+
+    if (this.opts.customContentTags) {
+      exps.customContentTag = new RegExp('^(' + Object.keys(this.opts.customContentTags).join('|') + ")\\\s+([^,]+)(,\\\s*((?!(,\\\s*content)|(content\\\s*$))[\\\s\\\S])*)?,\\\s*content$");
+      exps.endCustomTag = new RegExp('^end(' + Object.keys(this.opts.customContentTags).join('|') + ')$');
+    } else {
+      this.opts.customContentTags = {};
     }
   }
 
@@ -52,7 +59,14 @@ class Beard {
 
   customTag(name, parentPath, path, data = {}) {
     const resolvedPath = resolvePath(path, parentPath);
+    if (this.opts.customContentTags.hasOwnProperty(name)) return this.opts.customContentTags[name](resolvedPath, data);
     return this.opts.customTags[name](resolvedPath, data);
+  }
+
+  customContentTag(name, parentPath, path, data, content) {
+    data.content = content;
+    const resolvedPath = resolvePath(path, parentPath);
+    return this.opts.customContentTags[name](resolvedPath, data);
   }
 
   include(context, parentPath, path, data = {}) {
@@ -69,7 +83,8 @@ class Beard {
       locals: [data],
       compiled: this.compiled.bind(this),
       include: this.include.bind(this),
-      customTag: this.customTag.bind(this)
+      customTag: this.customTag.bind(this),
+      customContentTag: this.customContentTag.bind(this)
     }
     return this.compiled(path)(context);
   }
@@ -95,28 +110,30 @@ const tags = [
   'block', 'blockEnd', 'put', 'encode',
   'comment', 'if', 'exists', 'elseIf',
   'else', 'for', 'each', 'end', 'extends',
-  'customTag'
+  'customTag', 'customContentTag', 'endCustomTag'
 ];
 
 const exps = {
-  extends:         (/^extends\s(.+)$/g),
-  include:         (/^include\s+([^,]+)(,\s*((?!(,\s*content)|(content\s*$))[\s\S])*)?$/),
-  includeContent:  (/^include\s+([^,]+)(,\s*((?!(,\s*content)|(content\s*$))[\s\S])*)?,\s*content$/),
-  endInclude:      (/^endinclude$/),
-  put:             (/^put\s+(.+)$/),
-  exists:          (/^exists\s+(.+)$/),
-  block:           (/^block\s+(.[^}]*)/),
-  blockEnd:        (/^endblock$/),
-  encode:          (/^\:(.*)/),
-  comment:         (/^\*.*\*$/),
-  statement:       (/{{\s*([\S\s(?!}})]+?)\s*}}(?!\})/g),
-  if:              (/^if\s+([^]*)$/),
-  elseIf:          (/^else\s+if\s+([^]*)$/),
-  else:            (/^else$/),
-  for:             (/^for\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s+(.*)$/),
-  each:            (/^each\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s(.*)$/),
-  end:             (/^end$/),
-  customTag:       (/^(?!)$/)
+  extends:           (/^extends\s(.+)$/g),
+  include:           (/^include\s+([^,]+)(,\s*((?!(,\s*content)|(content\s*$))[\s\S])*)?$/),
+  includeContent:    (/^include\s+([^,]+)(,\s*((?!(,\s*content)|(content\s*$))[\s\S])*)?,\s*content$/),
+  endInclude:        (/^endinclude$/),
+  put:               (/^put\s+(.+)$/),
+  exists:            (/^exists\s+(.+)$/),
+  block:             (/^block\s+(.[^}]*)/),
+  blockEnd:          (/^endblock$/),
+  encode:            (/^\:(.*)/),
+  comment:           (/^\*.*\*$/),
+  statement:         (/{{\s*([\S\s(?!}})]+?)\s*}}(?!\})/g),
+  if:                (/^if\s+([^]*)$/),
+  elseIf:            (/^else\s+if\s+([^]*)$/),
+  else:              (/^else$/),
+  for:               (/^for\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s+(.*)$/),
+  each:              (/^each\s+([$A-Za-z_][0-9A-Za-z_]*)(?:\s*,\s*([$A-Za-z_][0-9A-Za-z_]*))?\s+in\s(.*)$/),
+  end:               (/^end$/),
+  customTag:         (/^(?!)$/),
+  customContentTag:  (/^(?!)$/),
+  endCustomTag:      (/^(?!)$/)
 };
 
 function resolvePath(path, parentPath) {
@@ -133,21 +150,23 @@ function hash(str) {
 }
 
 const parse = {
-  extends:        (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled(${path}, _currentPath)(_context);`,
-  block:          (_, blockname) => `_blockNames.push("${blockname}"); _blockCaptures.push('');`,
-  blockEnd:       () => 'eval(`var ${_blockNames[_blockNames.length - 1]} = _blockCaptures[_blockCaptures.length - 1]`); _context.globals[_blockNames[_blockNames.length - 1]] = _blockCaptures[_blockCaptures.length - 1]; _blockNames.pop(); _blockCaptures.pop();',
-  put:            (_, varname) => `_capture(typeof ${varname} !== "undefined" ? ${varname} : "");`,
-  exists:         (_, varname) => `if (typeof ${varname} !== "undefined") {`,
-  encode:         (_, statement) => `_encode(${statement});`,
-  comment:        () => '',
-  if:             (_, statement) => `if (${statement}) {`,
-  elseIf:         (_, statement) => `} else if (${statement}) {`,
-  else:           () => '} else {',
-  end:            () => '}',
-  customTag:      (_, name, args) => `_capture(_context.customTag("${name}", _currentPath, ${args}));`,
-  include:        (_, path, args) => `_capture(_context.include(_context, _currentPath, ${path} ${args == null ? '' : args}));`,
-  includeContent: (_, path, args) => `_blockNames.push('content'); _blockCaptures.push(''); _capturePaths.push(${path}); _captureArgs.push(${args == null ? '{}' : args.replace(/^,/, '')});`,
-  endInclude:     () => `var __locals = _captureArgs.pop(); __locals.content = _blockCaptures.pop(); _blockNames.pop(); _capture(_context.include(_context, _currentPath, _capturePaths.pop(), __locals));`,
+  extends:          (_, path) =>  ` _context.globals.content = _buffer; _buffer = _context.compiled(${path}, _currentPath)(_context);`,
+  block:            (_, blockname) => `_blockNames.push("${blockname}"); _blockCaptures.push('');`,
+  blockEnd:         () => 'eval(`var ${_blockNames[_blockNames.length - 1]} = _blockCaptures[_blockCaptures.length - 1]`); _context.globals[_blockNames[_blockNames.length - 1]] = _blockCaptures[_blockCaptures.length - 1]; _blockNames.pop(); _blockCaptures.pop();',
+  put:              (_, varname) => `_capture(typeof ${varname} !== "undefined" ? ${varname} : "");`,
+  exists:           (_, varname) => `if (typeof ${varname} !== "undefined") {`,
+  encode:           (_, statement) => `_encode(${statement});`,
+  comment:          () => '',
+  if:               (_, statement) => `if (${statement}) {`,
+  elseIf:           (_, statement) => `} else if (${statement}) {`,
+  else:             () => '} else {',
+  end:              () => '}',
+  customTag:        (_, name, path, args) => `_capture(_context.customTag("${name}", _currentPath, ${path} ${args == null ? '' : args}));`,
+  customContentTag: (_, name, path, args) => `_blockNames.push('content'); _blockCaptures.push(''); _capturePaths.push(${path}); _captureArgs.push(${args == null ? '{}' : args.replace(/^,/, '')});`,
+  endCustomTag:     (_, name) => `_blockNames.pop(); _capture(_context.customContentTag("${name}", _currentPath, _capturePaths.pop(), _captureArgs.pop(), _blockCaptures.pop()));`,
+  include:          (_, path, args) => `_capture(_context.include(_context, _currentPath, ${path} ${args == null ? '' : args}));`,
+  includeContent:   (_, path, args) => `_blockNames.push('content'); _blockCaptures.push(''); _capturePaths.push(${path}); _captureArgs.push(${args == null ? '{}' : args.replace(/^,/, '')});`,
+  endInclude:       () => `var __locals = _captureArgs.pop(); __locals.content = _blockCaptures.pop(); _blockNames.pop(); _capture(_context.include(_context, _currentPath, _capturePaths.pop(), __locals));`,
   for: (_, value, key, objValue) => {
     if (!key) key = `_iterator_${uniqueIterator(value)}`;
     const obj = `_iterator_${uniqueIterator(value)}`;
