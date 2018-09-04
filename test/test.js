@@ -335,6 +335,81 @@ describe('Beard Rendering', function() {
     expect(engine.render('multiline')).to.equal('multi | line');
   });
 
+  it('handles includes with content blocks', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          start
+          {{include '../header', content}}
+            <h1>hello world</h1>
+          {{endinclude}}
+          end`,
+        '/header': '{{content}} include'
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>hello world</h1> include end');
+  });
+
+  it('handles includes with content blocks and data', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          start
+          {{include '../header', {title: 'The Title'}, content}}
+            <h1>Hello World</h1>
+          {{endinclude}}
+          end`,
+        '/header': '{{content}} {{title}} include'
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>Hello World</h1> The Title include end');
+  });
+
+  it('handles includes with content blocks and data and subincludes', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          start
+          {{include '../header', {
+            header: 'Header'
+          }, content}}
+            <h1>Header</h1>
+          {{endinclude}}
+          end`,
+        '/header': `{{content}} {{include 'partial', {content: header}}} include`,
+        '/partial': 'partial {{content}}'
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>Header</h1> partial Header include end');
+  });
+
+  it('handles includes with content blocks inside an extends', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          {{extends '/layout'}}
+          begin
+          {{block nav}}
+          main nav
+          {{endblock}}
+          {{include '../header', content}}
+            <h1>Header</h1>
+          {{endinclude}}
+          end`,
+        '/header': `{{content}} include`,
+        '/layout': `
+          top
+          {{nav}}
+          -
+          {{content}}
+          footer
+        `
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
+      to.equal(' top main nav - begin <h1>Header</h1> include end footer ');
+  });
+
   it('ignores inline css and js', function() {
     const engine = beard({
       templates: {
