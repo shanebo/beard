@@ -70,8 +70,7 @@ class Beard {
   }
 
   include(context, parentPath, path, data = {}) {
-    context.locals.push(Object.assign({}, context.locals[context.locals.length - 1]));
-    Object.assign(context.locals[context.locals.length - 1], data);
+    context.locals.push(data);
     const result = context.compiled(path, parentPath)(context);
     context.locals.pop();
     return result;
@@ -266,10 +265,12 @@ function compile(str, path) {
         }
       }
 
-      var _locals = _context.locals[_context.locals.length - 1];
-      for (var prop in _locals) {
-        if (_locals.hasOwnProperty(prop)) {
-          eval('var ' + prop + ' = _locals[prop]');
+      for (var i = 0; i < _context.locals.length; i++) {
+        var _locals = _context.locals[i];
+        for (var prop in _locals) {
+          if (_locals.hasOwnProperty(prop)) {
+            eval('var ' + prop + ' = _locals[prop]');
+          }
         }
       }
 
