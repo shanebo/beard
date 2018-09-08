@@ -335,6 +335,81 @@ describe('Beard Rendering', function() {
     expect(engine.render('multiline')).to.equal('multi | line');
   });
 
+  it('handles includes with content blocks', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          start
+          {{include '../header', content}}
+            <h1>hello world</h1>
+          {{endinclude}}
+          end`,
+        '/header': '{{content}} include'
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>hello world</h1> include end');
+  });
+
+  it('handles includes with content blocks and data', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          start
+          {{include '../header', {title: 'The Title'}, content}}
+            <h1>Hello World</h1>
+          {{endinclude}}
+          end`,
+        '/header': '{{content}} {{title}} include'
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>Hello World</h1> The Title include end');
+  });
+
+  it('handles includes with content blocks and data and subincludes', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          start
+          {{include '../header', {
+            header: 'Header'
+          }, content}}
+            <h1>Header</h1>
+          {{endinclude}}
+          end`,
+        '/header': `{{content}} {{include 'partial', {content: header}}} include`,
+        '/partial': 'partial {{content}}'
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>Header</h1> partial Header include end');
+  });
+
+  it('handles includes with content blocks inside an extends', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          {{extends '/layout'}}
+          begin
+          {{block nav}}
+          main nav
+          {{endblock}}
+          {{include '../header', content}}
+            <h1>Header</h1>
+          {{endinclude}}
+          end`,
+        '/header': `{{content}} include`,
+        '/layout': `
+          top
+          {{nav}}
+          -
+          {{content}}
+          footer
+        `
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
+      to.equal(' top main nav - begin <h1>Header</h1> include end footer ');
+  });
+
   it('ignores inline css and js', function() {
     const engine = beard({
       templates: {
@@ -528,5 +603,84 @@ describe('Custom Tags', function() {
     });
     expect(engine.render('view', {assetName: 'calvin.png', componentName: 'simple', other: 'foo_bar'}))
       .to.equal('/calvin.png page Foo component The Foo Bar');
+  });
+
+  it('handles custom tags with block content', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          top
+          {{component '../header', content}}
+            <h1>hello world</h1>
+          {{endcomponent}}`,
+        '/header': '{{content}} component'
+      },
+      customContentTags: {
+        component: (path, data) => engine.render(path, data)
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' top <h1>hello world</h1> component');
+  });
+
+  it('handles custom tags with block content and data', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          top
+          {{component '../header', {title: 'the title'}, content}}
+            <h1>hello world</h1>
+          {{endcomponent}}`,
+        '/header': '{{content}} {{title}} component'
+      },
+      customContentTags: {
+        component: (path, data) => engine.render(path, data)
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
+      to.equal(' top <h1>hello world</h1> the title component');
+  });
+
+  it('handles custom tags with block content, data and subcomponents', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          top
+          {{component '../header',
+            {
+              title: 'the title'
+            }, content}}
+            <h1>hello world</h1>
+            {{component '/sub'}}
+          {{endcomponent}}`,
+        '/header': '{{content}} {{title}} component',
+        '/sub': 'the sub!'
+      },
+      customContentTags: {
+        component: (path, data) => engine.render(path, data)
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
+      to.equal(' top <h1>hello world</h1> the sub! the title component');
+  });
+
+  it('handles custom tags with block content and extended layouts', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          {{extends '../layout'}}
+          top
+          {{block nav}}the nav{{endblock}}
+          {{component '../header', content}}
+            <h1>hello world</h1>
+          {{endcomponent}}`,
+        '/header': '{{content}} component',
+        '/layout': 'begin {{nav}} {{content}} end'
+      },
+      customContentTags: {
+        component: (path, data) => engine.render(path, data)
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
+      to.equal('begin the nav top <h1>hello world</h1> component end');
   });
 });
