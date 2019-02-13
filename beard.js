@@ -1,7 +1,6 @@
-const fs = require('fs');
-const exts = '(.beard$)';
-const traversy = require('traversy');
-const normalize = require('path').normalize;
+const { normalize, resolve } = require('path');
+const { bundle } = require('./bundle');
+const { cleanWhitespace, hash } = require('./utils');
 
 class BeardError {
   constructor(realError, template, lineNumber, tag) {
@@ -22,12 +21,9 @@ class Beard {
     this.handles = {};
 
     if (this.opts.root) {
-      const regex = new RegExp('(.beard$)', 'g');
-      traversy(this.opts.root, exts, (path) => {
-        const key = path.replace(regex, '');
-        const body = fs.readFileSync(path, 'utf8');
-        this.opts.templates[key] = cleanWhitespace(body);
-      });
+      const { templates, handles } = bundle(this.opts.root);
+      this.handles = handles;
+      this.opts.templates = templates;
     }
 
     if (this.opts.customTags) {
@@ -52,7 +48,7 @@ class Beard {
 
   customTag(name, parentPath, firstArg, data = {}) {
     if (this.opts.customTags[name].firstArgIsResolvedPath) firstArg = resolvePath(firstArg, parentPath, this.opts.root);
-    return this.opts.customTags[name].render(firstArg, data);
+    return this.opts.customTags[name].render(firstArg, data, this.handles, this.render.bind(this));
   }
 
   customContentTag(name, parentPath, firstArg, data, content) {
@@ -96,7 +92,6 @@ function validateSyntax(templateCode, tag, lineNumber, template) {
   }
 }
 
-const cleanWhitespace = str => str.replace(/\s+/g, ' ').trim();
 const getDir = path => path.replace(/\/[^\/]+$/, '');
 const reducer = (inner, tag) => inner.replace(exps[tag], parse[tag]);
 const uniqueIterator = value => Math.random().toString().substring(2);
@@ -137,13 +132,6 @@ function resolvePath(path, parentPath, root) {
     : path.startsWith('~')
       ? resolve(root, path.replace(/^~/, '.'))
       : normalize(`${getDir(parentPath)}/${path}`);
-}
-
-function hash(str) {
-  let hash = 5381;
-  let i = str.length;
-  while (i) hash = (hash * 33) ^ str.charCodeAt(--i);
-  return hash >>> 0;
 }
 
 const parse = {
@@ -232,48 +220,48 @@ function compile(str, path) {
   const templateCode = scanner(str.replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"'), path).join(' ');
 
   const fn = `
-      var _currentPath = '${path}';
-      var _buffer = '';
-      var _blockNames = [];
-      var _blockCaptures = [];
-      var _capturePaths = [];
-      var _captureArgs = [];
+    var _currentPath = '${path}';
+    var _buffer = '';
+    var _blockNames = [];
+    var _blockCaptures = [];
+    var _capturePaths = [];
+    var _captureArgs = [];
 
-      function _capture(str) {
-        if (_blockNames.length > 0) {
-          _blockCaptures[_blockCaptures.length - 1] += str;
-        } else {
-          _buffer += str;
+    function _capture(str) {
+      if (_blockNames.length > 0) {
+        _blockCaptures[_blockCaptures.length - 1] += str;
+      } else {
+        _buffer += str;
+      }
+    }
+
+    function _encode(str) {
+      _capture(str
+        .replace(/&(?!\\w+;)/g, '&#38;')
+        .replace(/\</g, '&#60;')
+        .replace(/\>/g, '&#62;')
+        .replace(/\"/g, '&#34;')
+        .replace(/\'/g, '&#39;')
+        .replace(/\\//g, '&#47;'));
+    }
+
+    for (var prop in _context.globals) {
+      if (_context.globals.hasOwnProperty(prop)) {
+        eval('var ' + prop + ' = _context.globals[prop]');
+      }
+    }
+
+    for (var i = 0; i < _context.locals.length; i++) {
+      var _locals = _context.locals[i];
+      for (var prop in _locals) {
+        if (_locals.hasOwnProperty(prop)) {
+          eval('var ' + prop + ' = _locals[prop]');
         }
       }
+    }
 
-      function _encode(str) {
-        _capture(str
-          .replace(/&(?!\\w+;)/g, '&#38;')
-          .replace(/\</g, '&#60;')
-          .replace(/\>/g, '&#62;')
-          .replace(/\"/g, '&#34;')
-          .replace(/\'/g, '&#39;')
-          .replace(/\\//g, '&#47;'));
-      }
-
-      for (var prop in _context.globals) {
-        if (_context.globals.hasOwnProperty(prop)) {
-          eval('var ' + prop + ' = _context.globals[prop]');
-        }
-      }
-
-      for (var i = 0; i < _context.locals.length; i++) {
-        var _locals = _context.locals[i];
-        for (var prop in _locals) {
-          if (_locals.hasOwnProperty(prop)) {
-            eval('var ' + prop + ' = _locals[prop]');
-          }
-        }
-      }
-
-      ${templateCode}
-      return _buffer;
+    ${templateCode}
+    return _buffer;
   `.replace(/_capture\(""\);(\s+)?/g, '');
 
   try {

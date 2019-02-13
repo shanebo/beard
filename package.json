@@ -18,7 +18,12 @@
     "test": "mocha"
   },
   "dependencies": {
-    "traversy": "0.0.2"
+    "cheerio": "github:cheeriojs/cheerio#3368605edb3c5babecc8576602a9d54ccfdaef1e",
+    "fs-extra": "7.0.1",
+    "md5": "2.2.1",
+    "mismatch": "^1.2.0",
+    "traversy": "0.0.2",
+    "xregexp": "4.2.4"
   },
   "devDependencies": {
     "mocha": "4.1.0",
