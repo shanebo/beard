@@ -22,15 +22,43 @@ class Beard {
     this.fnCache = {};
     this.pathMap = {};
 
+    let css = '';
+
     if (this.opts.root) {
       const regex = new RegExp(`(^${this.opts.root}|.beard$)`, 'g');
       traversy(this.opts.root, exts, (path) => {
         const key = path.replace(regex, '');
-        const body = fs.readFileSync(path, 'utf8');
+        let body = fs.readFileSync(path, 'utf8');
+
+
+        // const styles = body.match();
+        // const styles = body.match(/<style>([\s\S]*?)<\/style>/gmi);
+        const styles = /<style>([\s\S]*?)<\/style>/gmi.exec(body);
+
+        if (styles) {
+          body = body.replace(/<style>([\s\S]*?)<\/style>/gmi, '');
+          console.log('\n\n\n');
+          styles.shift();
+          console.log(styles);
+
+          styles.forEach(style => {
+            css += style;
+          });
+          // console.log('\n\n\n');
+          // console.log(styles.length);
+          // console.log({ styles: styles[1] });
+        }
+
         this.opts.templates[key] = this.opts.cache ? cleanWhitespace(body) : body;
         this.pathMap[key] = path;
       });
     }
+
+    console.log({ css });
+    // console.log(`${this.opts.root}/assets/embedded-styles.scss`);
+    fs.writeFileSync(`${this.opts.root}/assets/embedded-styles.scss`, css);
+    // console.log({ templates: this.opts.templates });
+
 
     if (this.opts.customTags) {
       exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([^,]+)(,\\\s*((?!(,\\\s*content)|(content\\\s*$))[\\\s\\\S])*)?$");
