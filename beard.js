@@ -2,6 +2,8 @@ const fs = require('fs');
 const exts = '(.beard$)';
 const traversy = require('traversy');
 const normalize = require('path').normalize;
+const { basename, extname, resolve, dirname, relative } = require('path');
+const md5 = require('md5');
 
 class BeardError {
   constructor(realError, template, lineNumber, tag) {
@@ -14,6 +16,8 @@ class BeardError {
   }
 }
 
+const assetHash = (content) => md5(content).slice(-8);
+
 class Beard {
   constructor(opts = {}) {
     if (!opts.hasOwnProperty('cache')) opts.cache = true;
@@ -22,7 +26,8 @@ class Beard {
     this.fnCache = {};
     this.pathMap = {};
 
-    let css = '';
+    let cssEntry = [];
+    let jsEntry = [];
 
     if (this.opts.root) {
       const regex = new RegExp(`(^${this.opts.root}|.beard$)`, 'g');
@@ -31,34 +36,54 @@ class Beard {
         let body = fs.readFileSync(path, 'utf8');
 
 
-        // const styles = body.match();
-        // const styles = body.match(/<style>([\s\S]*?)<\/style>/gmi);
-        const styles = /<style>([\s\S]*?)<\/style>/gmi.exec(body);
-
-        if (styles) {
-          body = body.replace(/<style>([\s\S]*?)<\/style>/gmi, '');
-          console.log('\n\n\n');
-          styles.shift();
-          console.log(styles);
-
-          styles.forEach(style => {
-            css += style;
+        body = body.replace(/<style>([\s\S]*?)<\/style>/gmi, (_, stylesContent) => {
+          console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n');
+          const regex = /(@import|url)\s*["'\(]*([^'"\)]+)/gmi;
+          stylesContent = stylesContent.replace(regex, (match, _, importPath) => {
+            const abImportPath = resolve(this.opts.root, dirname(path), importPath);
+            const newImportPath = relative(`${this.opts.root}/../.beard`, abImportPath);
+            console.log({ match });
+            console.log({ importPath });
+            console.log({ abImportPath });
+            console.log({ newImportPath });
+            return match.replace(importPath, newImportPath);
           });
-          // console.log('\n\n\n');
-          // console.log(styles.length);
-          // console.log({ styles: styles[1] });
-        }
+
+          const partialPath = `${basename(path, extname(path))}.scss`;
+          // const partialPath = `${basename(path, extname(path))}.${assetHash(stylesContent)}.scss`;
+          fs.writeFileSync(`${this.opts.root}/../.beard/${partialPath}`, stylesContent);
+          cssEntry.push(`@import './${partialPath}';`);
+          return '';
+        });
+
+
+        body = body.replace(/<script>([\s\S]*?)<\/script>/gmi, (_, scriptContent) => {
+          console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n');
+          const regex = /(import|require)[^'"`]+['"`]([^'"`]+)['"`]/gmi;
+          scriptContent = scriptContent.replace(regex, (match, _, importPath) => {
+            const abImportPath = resolve(this.opts.root, dirname(path), importPath);
+            const relImportPath = relative(`${this.opts.root}/../.beard`, abImportPath);
+            console.log({ match });
+            console.log({ importPath });
+            console.log({ abImportPath });
+            console.log({ relImportPath });
+            return match.replace(importPath, relImportPath);
+          });
+
+          const partialPath = `${basename(path, extname(path))}.js`;
+          // const partialPath = `${basename(path, extname(path))}.${assetHash(scriptContent)}.js`;
+          fs.writeFileSync(`${this.opts.root}/../.beard/${partialPath}`, scriptContent);
+          jsEntry.push(`import './${partialPath}';`);
+          return '';
+        });
 
         this.opts.templates[key] = this.opts.cache ? cleanWhitespace(body) : body;
         this.pathMap[key] = path;
       });
     }
 
-    console.log({ css });
-    // console.log(`${this.opts.root}/assets/embedded-styles.scss`);
-    fs.writeFileSync(`${this.opts.root}/assets/embedded-styles.scss`, css);
-    // console.log({ templates: this.opts.templates });
-
+    fs.writeFileSync(`${this.opts.root}/../.beard/_entry.scss`, cssEntry.join('\n'));
+    fs.writeFileSync(`${this.opts.root}/../.beard/_entry.js`, jsEntry.join('\n'));
 
     if (this.opts.customTags) {
       exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([^,]+)(,\\\s*((?!(,\\\s*content)|(content\\\s*$))[\\\s\\\S])*)?$");
