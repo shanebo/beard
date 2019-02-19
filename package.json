@@ -18,7 +18,9 @@
     "test": "mocha"
   },
   "dependencies": {
-    "traversy": "0.0.2"
+    "traversy": "0.0.2",
+    "md5": "2.2.1",
+    "fs-extra": "7.0.1"
   },
   "devDependencies": {
     "mocha": "4.1.0",
