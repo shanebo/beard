@@ -22,7 +22,7 @@ const blockTypes = [
     ext: 'js'
   },
   {
-    tagsRegex: /<script side="server">([\s\S]*?)<\/script>/gmi,
+    tagsRegex: /<script handle>([\s\S]*?)<\/script>/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     ext: 'ssjs.js'
   }
@@ -41,7 +41,6 @@ class BeardError {
 
 class Beard {
   constructor(opts = {}) {
-    if (!opts.hasOwnProperty('cache')) opts.cache = true;
     opts.templates = opts.templates || {};
     this.opts = opts;
     this.fnCache = {};
@@ -79,7 +78,7 @@ class Beard {
           });
         });
 
-        this.opts.templates[key] = this.opts.cache ? cleanWhitespace(body) : body;
+        this.opts.templates[key] = cleanWhitespace(body);
         this.pathMap[key] = path;
       });
 
@@ -101,16 +100,10 @@ class Beard {
 
   compiled(path, parentPath = '') {
     path = resolvePath(path, parentPath);
-
-    if (this.opts.cache) {
-      const str = this.opts.templates[path];
-      const key = hash(path);
-      if (!this.fnCache[key]) this.fnCache[key] = compile(str, path);
-      return this.fnCache[key];
-    } else {
-      const str = fs.readFileSync(this.pathMap[path], 'utf8');
-      return compile(str, path);
-    }
+    const str = this.opts.templates[path];
+    const key = hash(path);
+    if (!this.fnCache[key]) this.fnCache[key] = compile(str, path);
+    return this.fnCache[key];
   }
 
   customTag(name, parentPath, path, data = {}) {
