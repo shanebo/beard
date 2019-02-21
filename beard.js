@@ -43,16 +43,15 @@ class Beard {
   constructor(opts = {}) {
     opts.templates = opts.templates || {};
     this.opts = opts;
-    this.fnCache = {};
-    this.pathMap = {};
-    this.componentHandles = {};
+    this.fns = {};
+    this.handles = {};
 
     if (this.opts.root) {
       const beardDir = `${this.opts.root}/../.beard`;
       fse.removeSync(beardDir);
       fse.ensureDirSync(beardDir);
 
-      const regex = new RegExp(`(^${this.opts.root}|.beard$)`, 'g');
+      const regex = new RegExp('(.beard$)', 'g');
       traversy(this.opts.root, exts, (path) => {
         const key = path.replace(regex, '');
         let body = fs.readFileSync(path, 'utf8');
@@ -71,7 +70,7 @@ class Beard {
             if (block.entry) {
               block.entry.push(block.importStatement(partialPath));
             } else {
-              this.componentHandles[key] = require(`${beardDir}/${partialPath}`);
+              this.handles[key] = require(`${beardDir}/${partialPath}`);
             }
 
             return '';
@@ -79,7 +78,6 @@ class Beard {
         });
 
         this.opts.templates[key] = cleanWhitespace(body);
-        this.pathMap[key] = path;
       });
 
       fs.writeFileSync(`${beardDir}/entry.css`, blockTypes[0].entry.join('\n'));
@@ -99,25 +97,25 @@ class Beard {
   }
 
   compiled(path, parentPath = '') {
-    path = resolvePath(path, parentPath);
-    const str = this.opts.templates[path];
+    path = resolvePath(path, parentPath, this.opts.root);
     const key = hash(path);
-    if (!this.fnCache[key]) this.fnCache[key] = compile(str, path);
-    return this.fnCache[key];
+    const str = this.opts.templates[path];
+    if (!this.fns[key]) this.fns[key] = compile(str, path);
+    return this.fns[key];
   }
 
   customTag(name, parentPath, path, data = {}) {
-    const resolvedPath = resolvePath(path, parentPath);
+    const resolvedPath = resolvePath(path, parentPath, this.opts.root);
     if (this.opts.customContentTags.hasOwnProperty(name)) {
-      return this.opts.customContentTags[name](resolvedPath, data, this.componentHandles, this.render.bind(this));
+      return this.opts.customContentTags[name](resolvedPath, data, this.handles, this.render.bind(this));
     }
-    return this.opts.customTags[name](resolvedPath, data, this.componentHandles, this.render.bind(this));
+    return this.opts.customTags[name](resolvedPath, data, this.handles, this.render.bind(this));
   }
 
   customContentTag(name, parentPath, path, data, content) {
     data.content = content;
-    const resolvedPath = resolvePath(path, parentPath);
-    return this.opts.customContentTags[name](resolvedPath, data, this.componentHandles, this.render.bind(this));
+    const resolvedPath = resolvePath(path, parentPath, this.opts.root);
+    return this.opts.customContentTags[name](resolvedPath, data, this.handles, this.render.bind(this));
   }
 
   include(context, parentPath, path, data = {}) {
@@ -186,13 +184,17 @@ const exps = {
   endCustomTag:      (/^(?!)$/)
 };
 
-function resolvePath(path, parentPath) {
+function resolvePath(path, parentPath, root) {
   return path.startsWith('/')
     ? path
-    : normalize(`${getDir(parentPath)}/${path}`);
+    : path.startsWith('~')
+      ? resolve(root, path.replace(/^~/, '.'))
+      : normalize(`${getDir(parentPath)}/${path}`);
 }
 
 function hash(str) {
+  // not doing this at all mignt be faster
+  // return str;
   let hash = 5381;
   let i = str.length;
   while (i) hash = (hash * 33) ^ str.charCodeAt(--i);
@@ -285,48 +287,48 @@ function compile(str, path) {
   const templateCode = scanner(str.replace(new RegExp('\\\\', 'g'), '\\\\').replace(/"/g, '\\"'), path).join(' ');
 
   const fn = `
-      var _currentPath = '${path}';
-      var _buffer = '';
-      var _blockNames = [];
-      var _blockCaptures = [];
-      var _capturePaths = [];
-      var _captureArgs = [];
+    var _currentPath = '${path}';
+    var _buffer = '';
+    var _blockNames = [];
+    var _blockCaptures = [];
+    var _capturePaths = [];
+    var _captureArgs = [];
 
-      function _capture(str) {
-        if (_blockNames.length > 0) {
-          _blockCaptures[_blockCaptures.length - 1] += str;
-        } else {
-          _buffer += str;
+    function _capture(str) {
+      if (_blockNames.length > 0) {
+        _blockCaptures[_blockCaptures.length - 1] += str;
+      } else {
+        _buffer += str;
+      }
+    }
+
+    function _encode(str) {
+      _capture(str
+        .replace(/&(?!\\w+;)/g, '&#38;')
+        .replace(/\</g, '&#60;')
+        .replace(/\>/g, '&#62;')
+        .replace(/\"/g, '&#34;')
+        .replace(/\'/g, '&#39;')
+        .replace(/\\//g, '&#47;'));
+    }
+
+    for (var prop in _context.globals) {
+      if (_context.globals.hasOwnProperty(prop)) {
+        eval('var ' + prop + ' = _context.globals[prop]');
+      }
+    }
+
+    for (var i = 0; i < _context.locals.length; i++) {
+      var _locals = _context.locals[i];
+      for (var prop in _locals) {
+        if (_locals.hasOwnProperty(prop)) {
+          eval('var ' + prop + ' = _locals[prop]');
         }
       }
+    }
 
-      function _encode(str) {
-        _capture(str
-          .replace(/&(?!\\w+;)/g, '&#38;')
-          .replace(/\</g, '&#60;')
-          .replace(/\>/g, '&#62;')
-          .replace(/\"/g, '&#34;')
-          .replace(/\'/g, '&#39;')
-          .replace(/\\//g, '&#47;'));
-      }
-
-      for (var prop in _context.globals) {
-        if (_context.globals.hasOwnProperty(prop)) {
-          eval('var ' + prop + ' = _context.globals[prop]');
-        }
-      }
-
-      for (var i = 0; i < _context.locals.length; i++) {
-        var _locals = _context.locals[i];
-        for (var prop in _locals) {
-          if (_locals.hasOwnProperty(prop)) {
-            eval('var ' + prop + ' = _locals[prop]');
-          }
-        }
-      }
-
-      ${templateCode}
-      return _buffer;
+    ${templateCode}
+    return _buffer;
   `.replace(/_capture\(""\);(\s+)?/g, '');
 
   try {
