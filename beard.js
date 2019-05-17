@@ -1,32 +1,5 @@
-const fs = require('fs');
-const fse = require('fs-extra');
-const exts = '(.beard$)';
-const traversy = require('traversy');
-const { normalize, basename, extname, resolve, dirname, relative } = require('path');
-const md5 = require('md5');
-
-const assetHash = (content) => md5(content).slice(-8);
-const blockTypes = [
-  {
-    entry: [],
-    tagsRegex: /<style>([\s\S]*?)<\/style>/gmi,
-    pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
-    importStatement: (path) => `@import './${path}';`,
-    ext: 'scss'
-  },
-  {
-    entry: [],
-    tagsRegex: /<script>([\s\S]*?)<\/script>/gmi,
-    pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
-    importStatement: (path) => `import './${path}';`,
-    ext: 'js'
-  },
-  {
-    tagsRegex: /<script handle>([\s\S]*?)<\/script>/gmi,
-    pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
-    ext: 'ssjs.js'
-  }
-];
+const { normalize, resolve } = require('path');
+const { bundle } = require('./bundle');
 
 class BeardError {
   constructor(realError, template, lineNumber, tag) {
@@ -47,41 +20,9 @@ class Beard {
     this.handles = {};
 
     if (this.opts.root) {
-      const beardDir = `${this.opts.root}/../.beard`;
-      fse.removeSync(beardDir);
-      fse.ensureDirSync(beardDir);
-
-      const regex = new RegExp('(.beard$)', 'g');
-      traversy(this.opts.root, exts, (path) => {
-        const key = path.replace(regex, '');
-        let body = fs.readFileSync(path, 'utf8');
-
-        blockTypes.forEach((block) => {
-          body = body.replace(block.tagsRegex, (_, content) => {
-            content = content.replace(block.pathsRegex, (match, _, importPath) => {
-              const abImportPath = resolve(this.opts.root, dirname(path), importPath);
-              const newImportPath = relative(beardDir, abImportPath);
-              return match.replace(importPath, newImportPath);
-            });
-
-            const partialPath = `${basename(path, extname(path))}.${assetHash(content)}.${block.ext}`;
-            fs.writeFileSync(`${beardDir}/${partialPath}`, content);
-
-            if (block.entry) {
-              block.entry.push(block.importStatement(partialPath));
-            } else {
-              this.handles[key] = require(`${beardDir}/${partialPath}`);
-            }
-
-            return '';
-          });
-        });
-
-        this.opts.templates[key] = cleanWhitespace(body);
-      });
-
-      fs.writeFileSync(`${beardDir}/entry.css`, blockTypes[0].entry.join('\n'));
-      fs.writeFileSync(`${beardDir}/entry.js`, blockTypes[1].entry.join('\n'));
+      const { templates, handles } = bundle(this.opts.root);
+      this.handles = handles;
+      this.opts.templates = templates;
     }
 
     if (this.opts.customTags) {
@@ -134,11 +75,6 @@ class Beard {
       customTag: this.customTag.bind(this),
       customContentTag: this.customContentTag.bind(this)
     }
-
-    if (this.opts.root && !path.startsWith('/')) {
-      path = `${this.opts.root}/${path}`;
-    }
-
     return this.compiled(path)(context);
   }
 }
