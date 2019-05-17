@@ -135,9 +135,9 @@ class Beard {
       customContentTag: this.customContentTag.bind(this)
     }
 
-    path = (!this.opts.root || path.startsWith('/'))
-      ? path
-      : `${this.opts.root}/${path}`;
+    if (this.opts.root && !path.startsWith('/')) {
+      path = `${this.opts.root}/${path}`;
+    }
 
     return this.compiled(path)(context);
   }
