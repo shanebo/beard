@@ -105,6 +105,11 @@ function bundleBlocks(path, key) {
   let body = fs.readFileSync(path, 'utf8');
 
   blockTypes.forEach((blockType) => {
+    if (blockType.bundles) {
+      blockType.bundles = {
+        entry: []
+      };
+    }
     const { type, ext, tagsRegex, pathsRegex, importStatement } = blockType;
 
     const blockMatches = [];
