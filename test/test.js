@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const normalize = require('path').normalize;
+const fs = require('fs');
 
 const beard = require('../beard');
 
@@ -682,5 +683,17 @@ describe('Custom Tags', function() {
     });
     expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
       to.equal('begin the nav top <h1>hello world</h1> component end');
+  });
+});
+
+describe('Bundling', function() {
+  let engine;
+
+  before(() => engine = beard({ root: `${__dirname}/bundle` }));
+
+  it('bundles inline css', function() {
+    engine.render('simple');
+    const bundledCSS = fs.readFileSync(`${__dirname}/.beard/simple.ed10418f.scss`, 'utf8').trim();
+    expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`body { color: blue; }`);
   });
 });

@@ -1,0 +1,9 @@
+<body>
+simple
+</body>
+
+<style>
+body {
+  color: blue;
+}
+</style>
