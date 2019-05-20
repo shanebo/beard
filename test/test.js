@@ -708,4 +708,12 @@ describe('Bundling', function() {
     const contents = fs.readFileSync(`${__dirname}/.beard/simple.f710ee38.ssjs.js`, 'utf8').trim();
     expect(contents.trim().replace(/\s+/g, ' ')).to.equal("console.log('runnimg');");
   });
+
+  it('bundles with a custom bundle entry name', function() {
+    engine.render('named_bundle');
+    const bundledCSS = fs.readFileSync(`${__dirname}/.beard/named_bundle.e6035d8f.scss`, 'utf8').trim();
+    expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`p { color: red; }`);
+    const bundledJS = fs.readFileSync(`${__dirname}/.beard/named_bundle.03e83341.js`, 'utf8').trim();
+    expect(bundledJS).to.equal("document.getElementsByClassName(\'alert\')[0].innerHTML = \'alert\';");
+  });
 });
