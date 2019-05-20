@@ -716,4 +716,10 @@ describe('Bundling', function() {
     const bundledJS = fs.readFileSync(`${__dirname}/.beard/named_bundle.03e83341.js`, 'utf8').trim();
     expect(bundledJS).to.equal("document.getElementsByClassName(\'alert\')[0].innerHTML = \'alert\';");
   });
+
+  it('bundles with scoping', function() {
+    expect(engine.render('scoped')).to.equal('<body><span class="beard-2393674561">test</span></body>');
+    const contents = fs.readFileSync(`${__dirname}/.beard/scoped.02590365.scss`, 'utf8').trim();
+    expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-2393674561 { color: green; }');
+  });
 });
