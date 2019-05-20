@@ -1,0 +1,14 @@
+<body>
+  <span>test</span>
+</body>
+
+<style scoped>
+@media screen {
+  body {
+    color: green;
+  }
+  span {
+    color: green;
+  }
+}
+</style>
