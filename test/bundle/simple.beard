@@ -11,3 +11,7 @@ body {
 <script>
 document.getElementById('demo').innerHTML = 'hello';
 </script>
+
+<script handle>
+console.log('runnimg');
+</script>

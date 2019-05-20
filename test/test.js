@@ -702,4 +702,10 @@ describe('Bundling', function() {
     const bundledJS = fs.readFileSync(`${__dirname}/.beard/simple.6b756e34.js`, 'utf8').trim();
     expect(bundledJS).to.equal("document.getElementById('demo').innerHTML = 'hello';");
   });
+
+  it('bundles the server side handle function', function() {
+    engine.render('simple');
+    const contents = fs.readFileSync(`${__dirname}/.beard/simple.f710ee38.ssjs.js`, 'utf8').trim();
+    expect(contents.trim().replace(/\s+/g, ' ')).to.equal("console.log('runnimg');");
+  });
 });
