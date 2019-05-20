@@ -7,3 +7,7 @@ body {
   color: blue;
 }
 </style>
+
+<script>
+document.getElementById('demo').innerHTML = 'hello';
+</script>

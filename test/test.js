@@ -696,4 +696,10 @@ describe('Bundling', function() {
     const bundledCSS = fs.readFileSync(`${__dirname}/.beard/simple.ed10418f.scss`, 'utf8').trim();
     expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`body { color: blue; }`);
   });
+
+  it('bundles inline js', function() {
+    engine.render('simple');
+    const bundledJS = fs.readFileSync(`${__dirname}/.beard/simple.6b756e34.js`, 'utf8').trim();
+    expect(bundledJS).to.equal("document.getElementById('demo').innerHTML = 'hello';");
+  });
 });
