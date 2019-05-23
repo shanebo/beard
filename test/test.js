@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const normalize = require('path').normalize;
+const fs = require('fs');
 
 const beard = require('../beard');
 
@@ -682,5 +683,43 @@ describe('Custom Tags', function() {
     });
     expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
       to.equal('begin the nav top <h1>hello world</h1> component end');
+  });
+});
+
+describe('Bundling', function() {
+  let engine;
+
+  before(() => engine = beard({ root: `${__dirname}/bundle` }));
+
+  it('bundles inline css', function() {
+    engine.render('simple');
+    const bundledCSS = fs.readFileSync(`${__dirname}/.beard/simple.ed10418f.scss`, 'utf8').trim();
+    expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`body { color: blue; }`);
+  });
+
+  it('bundles inline js', function() {
+    engine.render('simple');
+    const bundledJS = fs.readFileSync(`${__dirname}/.beard/simple.6b756e34.js`, 'utf8').trim();
+    expect(bundledJS).to.equal("document.getElementById('demo').innerHTML = 'hello';");
+  });
+
+  it('bundles the server side handle function', function() {
+    engine.render('simple');
+    const contents = fs.readFileSync(`${__dirname}/.beard/simple.f710ee38.ssjs.js`, 'utf8').trim();
+    expect(contents.trim().replace(/\s+/g, ' ')).to.equal("console.log('runnimg');");
+  });
+
+  it('bundles with a custom bundle entry name', function() {
+    engine.render('named_bundle');
+    const bundledCSS = fs.readFileSync(`${__dirname}/.beard/named_bundle.e6035d8f.scss`, 'utf8').trim();
+    expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`p { color: red; }`);
+    const bundledJS = fs.readFileSync(`${__dirname}/.beard/named_bundle.03e83341.js`, 'utf8').trim();
+    expect(bundledJS).to.equal("document.getElementsByClassName(\'alert\')[0].innerHTML = \'alert\';");
+  });
+
+  it('bundles with scoping', function() {
+    expect(engine.render('scoped')).to.equal('<body><span class="beard-2393674561">test</span></body>');
+    const contents = fs.readFileSync(`${__dirname}/.beard/scoped.02590365.scss`, 'utf8').trim();
+    expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-2393674561 { color: green; }');
   });
 });

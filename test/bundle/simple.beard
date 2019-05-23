@@ -1,0 +1,17 @@
+<body>
+simple
+</body>
+
+<style>
+body {
+  color: blue;
+}
+</style>
+
+<script>
+document.getElementById('demo').innerHTML = 'hello';
+</script>
+
+<script handle>
+console.log('runnimg');
+</script>
