@@ -718,8 +718,8 @@ describe('Bundling', function() {
   });
 
   it('bundles with scoping', function() {
-    expect(engine.render('scoped')).to.equal('<body><span class="beard-2393674561">test</span></body>');
-    const contents = fs.readFileSync(`${__dirname}/.beard/scoped.02590365.scss`, 'utf8').trim();
-    expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-2393674561 { color: green; }');
+    expect(engine.render('scoped')).to.equal('<body><span class="beard-1472779383">test</span></body>');
+    const contents = fs.readFileSync(`${__dirname}/.beard/scoped.4e6d6e24.scss`, 'utf8').trim();
+    expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-1472779383 { color: green; }');
   });
 });
