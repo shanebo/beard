@@ -187,8 +187,11 @@ function addScopedCSS(body, styleName, newStyleName) {
 function scopeStyles(path, content, originalBody) {
   let body = originalBody;
 
+  console.log({path});
+
+
   const styles = replaceStyleNames(content, (styleName, style) => {
-    const newStyleName = `.beard-${hash(path + style)}`;
+    const newStyleName = `.beard-${hash(path.replace(root, '') + style)}`;
     body = addScopedCSS(body, styleName, newStyleName);
     return newStyleName;
   });
