@@ -31,7 +31,7 @@ const blockTypes = [
   {
     type: 'ssjs',
     blocks: [],
-    tagsRegex: /<script\shandle\s*(scoped)?\s*(?:bundle=\"(.+)\")?>([\s\S]+?)<\/script>/gmi,
+    tagsRegex: /<script\shandle>(?<block>[\s\S]+?)<\/script>/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     ext: 'ssjs.js'
   },
@@ -41,7 +41,7 @@ const blockTypes = [
       entry: []
     },
     blocks: [],
-    tagsRegex: /<style\s*(scoped)?\s*(?:bundle=\"(.+)\")?>([\s\S]+?)<\/style>/gmi,
+    tagsRegex: /<style\s*(?<scoped>scoped)?\s*(?:bundle=\"(?<bundleName>.+)\")?>(?<block>[\s\S]+?)<\/style>/gmi,
     pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
     importStatement: (path) => `@import './${path}';`,
     ext: 'scss'
@@ -52,7 +52,7 @@ const blockTypes = [
       entry: []
     },
     blocks: [],
-    tagsRegex: /<script\s*(scoped)?\s*(?:bundle=\"(.+)\")?>([\s\S]+?)<\/script>/gmi,
+    tagsRegex: /<script\s*(?:bundle=\"(?<bundleName>.+)\")?>(?<block>[\s\S]+?)<\/script>/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     importStatement: (path) => `import './${path}';`,
     ext: 'js'
@@ -113,12 +113,10 @@ function bundleBlocks(path, key) {
     const { type, ext, tagsRegex, pathsRegex, importStatement } = blockType;
 
     const blockMatches = [];
-    body = body.replace(tagsRegex, (_, scoped, bundleName, block) => {
-      blockMatches.push({
-        scoped,
-        bundleName,
-        block
-      });
+    body = body.replace(tagsRegex, function(){
+      const args = [...arguments];
+      const captures = args[args.length - 1];
+      blockMatches.push(captures);
       return '';
     });
 
