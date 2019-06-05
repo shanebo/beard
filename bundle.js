@@ -105,11 +105,6 @@ function bundleBlocks(path, key) {
   let body = fs.readFileSync(path, 'utf8');
 
   blockTypes.forEach((blockType) => {
-    if (blockType.bundles) {
-      blockType.bundles = {
-        entry: []
-      };
-    }
     const { type, ext, tagsRegex, pathsRegex, importStatement } = blockType;
 
     const blockMatches = [];
@@ -144,6 +139,7 @@ function bundleBlocks(path, key) {
         }
 
         blockType.bundles[bundleName].push(importStatement(partialPath));
+
       } else {
         handles[key] = require(`${beardDir}/${partialPath}`);
       }
