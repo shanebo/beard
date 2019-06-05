@@ -722,4 +722,10 @@ describe('Bundling', function() {
     const contents = fs.readFileSync(`${__dirname}/../.beard/scoped.adce7918.scss`, 'utf8').trim();
     expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-919478124 { color: green; }');
   });
+
+  it('bundles custom lang', function() {
+    engine.render('bundle/lang');
+    const bundledCSS = fs.readFileSync(`${__dirname}/../.beard/lang.28d75d5c.less`, 'utf8').trim();
+    expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`@color: blue; body { color: @color; }`);
+  });
 });

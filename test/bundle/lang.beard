@@ -1,0 +1,11 @@
+<body>
+simple
+</body>
+
+<style lang="less">
+@color: blue;
+
+body {
+  color: @color;
+}
+</style>

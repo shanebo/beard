@@ -41,7 +41,7 @@ const blockTypes = [
       entry: []
     },
     blocks: [],
-    tagsRegex: /<style\s*(?<scoped>scoped)?\s*(?:bundle=\"(?<bundleName>.+)\")?>(?<block>[\s\S]+?)<\/style>/gmi,
+    tagsRegex: /<style\s*(?<scoped>scoped)?\s*(?:bundle=\"(?<bundleName>.+)\")?\s*(?:lang=\"(?<lang>.+)\")?>(?<block>[\s\S]+?)<\/style>/gmi,
     pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
     importStatement: (path) => `@import './${path}';`,
     ext: 'scss'
@@ -116,7 +116,7 @@ function bundleBlocks(path, key) {
     });
 
     blockMatches.forEach((blockMatch) => {
-      let { scoped, bundleName, block } = blockMatch;
+      let { scoped, bundleName, lang, block } = blockMatch;
 
       block = fixPaths(path, block, pathsRegex);
 
@@ -126,7 +126,7 @@ function bundleBlocks(path, key) {
         body = scopedCSS.body;
       }
 
-      const partialPath = `${basename(path, extname(path))}.${assetHash(block)}.${ext}`;
+      const partialPath = `${basename(path, extname(path))}.${assetHash(block)}.${lang || ext}`;
       fs.writeFileSync(`${beardDir}/${partialPath}`, block);
 
       if (blockType.bundles) {
