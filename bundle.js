@@ -19,7 +19,7 @@ const { basename, extname, resolve, dirname, relative } = require('path');
 const md5 = require('md5');
 const cheerio = require('cheerio');
 const XRegExp = require('xregexp');
-
+const mismatch = require('mismatch');
 
 
 
@@ -37,22 +37,18 @@ const blockTypes = [
   },
   {
     type: 'css',
-    bundles: {
-      entry: []
-    },
     blocks: [],
-    tagsRegex: /<style\s*(?<scoped>scoped)?\s*(?:bundle=\"(?<bundleName>.+)\")?\s*(?:lang=\"(?<lang>.+)\")?>(?<block>[\s\S]+?)<\/style>/gmi,
+    tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/style>/gmi,
+    attributesRegex: /(bundle|lang|scoped)(?:="(.+?)")?/gmi,
     pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
     importStatement: (path) => `@import './${path}';`,
     ext: 'scss'
   },
   {
     type: 'js',
-    bundles: {
-      entry: []
-    },
     blocks: [],
-    tagsRegex: /<script\s*(?:bundle=\"(?<bundleName>.+)\")?>(?<block>[\s\S]+?)<\/script>/gmi,
+    tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/script>/gmi,
+    attributesRegex: /(bundle)(?:="(.+?)")?/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     importStatement: (path) => `import './${path}';`,
     ext: 'js'
@@ -77,6 +73,13 @@ exports.bundle = (rootDir) => {
 
   fse.removeSync(beardDir);
   fse.ensureDirSync(beardDir);
+
+  blockTypes[1].bundles = {
+    entry: []
+  };
+  blockTypes[2].bundles = {
+    entry: []
+  };
 
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
@@ -105,18 +108,28 @@ function bundleBlocks(path, key) {
   let body = fs.readFileSync(path, 'utf8');
 
   blockTypes.forEach((blockType) => {
-    const { type, ext, tagsRegex, pathsRegex, importStatement } = blockType;
+    const { type, ext, tagsRegex, attributesRegex, pathsRegex, importStatement } = blockType;
 
     const blockMatches = [];
     body = body.replace(tagsRegex, function(){
       const args = [...arguments];
       const captures = args[args.length - 1];
-      blockMatches.push(captures);
+
+      const blockMatch = { block: captures.block };
+
+      if (captures.attributes) {
+        mismatch(attributesRegex, captures.attributes, ['name', 'value']).forEach((attr) => {
+          blockMatch[attr.name] = attr.value || attr.name;
+        });
+      }
+
+      blockMatches.push(blockMatch);
       return '';
     });
 
     blockMatches.forEach((blockMatch) => {
-      let { scoped, bundleName, lang, block } = blockMatch;
+      let { scoped, bundle, lang, block } = blockMatch;
+      let bundleName = bundle;
 
       block = fixPaths(path, block, pathsRegex);
 
