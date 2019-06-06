@@ -711,10 +711,10 @@ describe('Bundling', function() {
 
   it('bundles with a custom bundle entry name', function() {
     engine.render('bundle/named-bundle');
-    const bundledCSS = fs.readFileSync(`${__dirname}/../.beard/named-bundle.e6035d8f.scss`, 'utf8').trim();
-    expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`p { color: red; }`);
-    const bundledJS = fs.readFileSync(`${__dirname}/../.beard/named-bundle.03e83341.js`, 'utf8').trim();
-    expect(bundledJS).to.equal("document.getElementsByClassName(\'alert\')[0].innerHTML = \'alert\';");
+    const entryCSS = fs.readFileSync(`${__dirname}/../.beard/alert.css`, 'utf8').trim();
+    expect(entryCSS).to.equal("@import './named-bundle.e6035d8f.scss';");
+    const entryJS = fs.readFileSync(`${__dirname}/../.beard/alert.js`, 'utf8').trim();
+    expect(entryJS).to.equal("import './named-bundle.03e83341.js';");
   });
 
   it('bundles with scoping', function() {
