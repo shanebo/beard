@@ -1,5 +1,6 @@
 const { normalize, resolve } = require('path');
 const { bundle } = require('./bundle');
+const { cleanWhitespace, hash } = require('./utils');
 
 class BeardError {
   constructor(realError, template, lineNumber, tag) {
@@ -95,7 +96,6 @@ function validateSyntax(templateCode, tag, lineNumber, template) {
   }
 }
 
-const cleanWhitespace = str => str.replace(/\s+/g, ' ').trim();
 const getDir = path => path.replace(/\/[^\/]+$/, '');
 const reducer = (inner, tag) => inner.replace(exps[tag], parse[tag]);
 const uniqueIterator = value => Math.random().toString().substring(2);
@@ -136,15 +136,6 @@ function resolvePath(path, parentPath, root) {
     : path.startsWith('~')
       ? resolve(root, path.replace(/^~/, '.'))
       : normalize(`${getDir(parentPath)}/${path}`);
-}
-
-function hash(str) {
-  // not doing this at all mignt be faster
-  // return str;
-  let hash = 5381;
-  let i = str.length;
-  while (i) hash = (hash * 33) ^ str.charCodeAt(--i);
-  return hash >>> 0;
 }
 
 const parse = {

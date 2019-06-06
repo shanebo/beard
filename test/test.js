@@ -718,9 +718,9 @@ describe('Bundling', function() {
   });
 
   it('bundles with scoping', function() {
-    expect(engine.render('bundle/scoped')).to.equal('<body><span class="beard-919478124">test</span></body>');
-    const contents = fs.readFileSync(`${__dirname}/../.beard/scoped.adce7918.scss`, 'utf8').trim();
-    expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-919478124 { color: green; }');
+    expect(engine.render('bundle/scoped')).to.equal('<body><span class="beard-708076192">test</span></body>');
+    const contents = fs.readFileSync(`${__dirname}/../.beard/scoped.9d1d8a1d.scss`, 'utf8').trim();
+    expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-708076192 { color: green; }');
   });
 
   it('bundles custom lang', function() {

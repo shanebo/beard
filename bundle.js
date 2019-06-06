@@ -21,6 +21,7 @@ const cheerio = require('cheerio');
 const XRegExp = require('xregexp');
 const mismatch = require('mismatch');
 
+const { cleanWhitespace, hash } = require('./utils');
 
 
 const exts = '(.beard$)';
@@ -30,14 +31,12 @@ const regex = new RegExp('(.beard$)', 'g');
 const blockTypes = [
   {
     type: 'ssjs',
-    blocks: [],
     tagsRegex: /<script\shandle>(?<block>[\s\S]+?)<\/script>/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     ext: 'ssjs.js'
   },
   {
     type: 'css',
-    blocks: [],
     tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/style>/gmi,
     attributesRegex: /(bundle|lang|scoped)(?:="(.+?)")?/gmi,
     pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
@@ -46,7 +45,6 @@ const blockTypes = [
   },
   {
     type: 'js',
-    blocks: [],
     tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/script>/gmi,
     attributesRegex: /(bundle)(?:="(.+?)")?/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
@@ -139,7 +137,8 @@ function bundleBlocks(path, key) {
         body = scopedCSS.body;
       }
 
-      const partialPath = `${basename(path, extname(path))}.${assetHash(block)}.${lang || ext}`;
+      const assetHash = md5(block).slice(-8);
+      const partialPath = `${basename(path, extname(path))}.${assetHash}.${lang || ext}`;
       fs.writeFileSync(`${beardDir}/${partialPath}`, block);
 
       if (blockType.bundles) {
@@ -174,7 +173,11 @@ function fixPaths(path, block, pathsRegex) {
 }
 
 
-function addScopedCSS(body, styleName, newStyleName) {
+
+
+// SCOPED CSS BELOW
+
+function scopeStyles(path, content, body) {
   const $ = cheerio.load(body, {
     withDomLvl1: false,
     normalizeWhitespace: false,
@@ -182,80 +185,50 @@ function addScopedCSS(body, styleName, newStyleName) {
     decodeEntities: false
   });
 
-  if (!styleName.includes('::') && !styleName.startsWith('/*') && !styleName.startsWith('//') && $(styleName)) {
-    $(styleName).addClass(newStyleName.replace(/^\./, ''));
-  }
+  const styles = replaceStyleNames(content, (styleDeclaration) => {
+    const { name, style, selectors } = styleDeclaration;
+    const newStyleName = `.beard-${hash(path.replace(root, '') + name + style)}`;
+    selectors.forEach(selector => {
+      if ($(selector)) {
+        $(selector).addClass(newStyleName.replace(/^\./, ''));
+      }
 
-  return $.html();
-  // return ($.html()).replace('scoped=""', 'scoped');
-}
-
-
-function scopeStyles(path, content, originalBody) {
-  let body = originalBody;
-
-  const styles = replaceStyleNames(content, (styleName, style) => {
-    const newStyleName = `.beard-${hash(path.replace(root, '') + style)}`;
-    body = addScopedCSS(body, styleName, newStyleName);
+      // if (!selector.includes('::') && !selector.startsWith('/*') && !selector.startsWith('//') && $(selector)) {
+      //   $(selector).addClass(newStyleName.replace(/^\./, ''));
+      // }
+    });
     return newStyleName;
   });
 
   return {
     styles,
-    body
-  }
+    body: $.html()
+  };
 }
 
 
-
-function hash(str) {
-  // not doing this at all mignt be faster
-  // return str;
-  let hash = 5381;
-  let i = str.length;
-  while (i) hash = (hash * 33) ^ str.charCodeAt(--i);
-  return hash >>> 0;
-}
-
-const cleanWhitespace = str => str.replace(/\s+/g, ' ').trim();
-
-const assetHash = (content) => md5(content).slice(-8);
-
-function replaceStyleNames(str, callback) {
-  matches = XRegExp.matchRecursive(str, '{', '}', 'g', {
+function replaceStyleNames(css, callback) {
+  const matches = XRegExp.matchRecursive(css, '{', '}', 'g', {
     valueNames: ['name', null, 'style', null]
   });
 
-  let styleMatch;
-  let mediaMatch;
-  let styles = '';
-
-  matches.forEach((match) => {
-    if (match.name == 'name') {
-      if (match.value.trim().startsWith('@')) {
-        mediaMatch = match;
-      } else {
-        styleMatch = match;
-        styleMatch.styleNames = match.value.split(',').map((name) => name.trim());
+  return matches
+    .map((match, m) => {
+      if (match.name === 'name' && match.value.trim()) {
+        return {
+          name: match.value,
+          selectors: match.value.split(',').map(name => name.trim()).filter(name => ![':', '/*', '//'].includes(name)),
+          style: matches[m + 1].value
+        };
       }
-    } else {
-      if (mediaMatch) {
-        const mediaStyles = replaceStyleNames(match.value, callback);
-        styles += `${mediaMatch.value}{${mediaStyles}}`;
-        mediaMatch = null;
+    })
+    .filter(match => match)
+    .map(style => {
+      if (style.name.startsWith('@')) {
+        const mediaStyles = replaceStyleNames(style.style, callback);
+        return `${callback(style)} {${mediaStyles}}`;
       } else {
-        const styleNameTable = styleMatch.styleNames.map((styleName) => {
-          return [styleName, callback(styleName, `${styleName}{${match.value}}`)];
-        });
-        let newStyleName = styleMatch.value;
-        styleNameTable.forEach((styles) => {
-          newStyleName = newStyleName.replace(styles[0], styles[1]);
-        });
-        styles += `${newStyleName}{${match.value}}`;
-        styleMatch = null;
+        return `${callback(style)} {${style.style}}`;
       }
-    }
-  });
-
-  return styles;
+    }).join('\n');
 }
