@@ -37,9 +37,6 @@ const blockTypes = [
   },
   {
     type: 'css',
-    bundles: {
-      entry: []
-    },
     blocks: [],
     tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/style>/gmi,
     attributesRegex: /(bundle|lang|scoped)(?:="(.+?)")?/gmi,
@@ -49,9 +46,6 @@ const blockTypes = [
   },
   {
     type: 'js',
-    bundles: {
-      entry: []
-    },
     blocks: [],
     tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/script>/gmi,
     attributesRegex: /(bundle)(?:="(.+?)")?/gmi,
@@ -79,6 +73,13 @@ exports.bundle = (rootDir) => {
 
   fse.removeSync(beardDir);
   fse.ensureDirSync(beardDir);
+
+  blockTypes[1].bundles = {
+    entry: []
+  };
+  blockTypes[2].bundles = {
+    entry: []
+  };
 
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
