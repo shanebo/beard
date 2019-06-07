@@ -20,9 +20,7 @@ const md5 = require('md5');
 const cheerio = require('cheerio');
 const XRegExp = require('xregexp');
 const mismatch = require('mismatch');
-
 const { cleanWhitespace, hash } = require('./utils');
-
 
 const exts = '(.beard$)';
 const regex = new RegExp('(.beard$)', 'g');
@@ -38,7 +36,6 @@ const blockTypes = [
   {
     type: 'css',
     tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/style>/gmi,
-    attributesRegex: /(bundle|lang|scoped)(?:="(.+?)")?/gmi,
     validAttributes: ['bundle', 'lang', 'scoped'],
     pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
     importStatement: (path) => `@import './${path}';`,
@@ -47,18 +44,12 @@ const blockTypes = [
   {
     type: 'js',
     tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/script>/gmi,
-    attributesRegex: /(bundle)(?:="(.+?)")?/gmi,
     validAttributes: ['bundle', 'lang'],
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     importStatement: (path) => `import './${path}';`,
     ext: 'js'
   }
 ];
-
-
-
-
-
 
 
 let root;
@@ -119,13 +110,10 @@ function bundleBlocks(path, key) {
       if (captures.attributes) {
         const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, captures.attributes, ['name', 'value']);
 
-        console.log({ attributes });
-
-
         if (!attributes.length || !attributes.every(attr => validAttributes.includes(attr.name))) return args[0];
 
         attributes.forEach((attr) => {
-          blockMatch[attr.name] = attr.value || attr.name;
+          blockMatch[attr.name] = attr.value || true;
         });
       }
 
@@ -170,8 +158,6 @@ function bundleBlocks(path, key) {
 }
 
 
-
-
 function fixPaths(path, block, pathsRegex) {
   return block.replace(pathsRegex, (match, _, importPath) => {
     const abImportPath = resolve(root, dirname(path), importPath);
@@ -179,8 +165,6 @@ function fixPaths(path, block, pathsRegex) {
     return match.replace(importPath, newImportPath);
   });
 }
-
-
 
 
 // SCOPED CSS BELOW
@@ -200,10 +184,6 @@ function scopeStyles(path, content, body) {
       if ($(selector)) {
         $(selector).addClass(newStyleName.replace(/^\./, ''));
       }
-
-      // if (!selector.includes('::') && !selector.startsWith('/*') && !selector.startsWith('//') && $(selector)) {
-      //   $(selector).addClass(newStyleName.replace(/^\./, ''));
-      // }
     });
     return newStyleName;
   });
