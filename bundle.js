@@ -24,6 +24,8 @@ const { cleanWhitespace, hash } = require('./utils');
 const exts = '(.beard$)';
 const regex = new RegExp('(.beard$)', 'g');
 
+// (foo|shane|boo).test('shane jack')
+// bundle="alert" lang="scss"
 
 const blockTypes = {
   ssjs: {
@@ -42,6 +44,7 @@ const blockTypes = {
   },
   js: {
     type: 'js',
+    // tagsRegex: /<script(?<attributes>((?!src=).)*?)>(?<block>[\s\S]+?)<\/script>/gmi,
     tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/script>/gmi,
     validAttributes: ['bundle', 'lang'],
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
@@ -102,7 +105,7 @@ function parseBlocks(content, path) {
 
   Object.entries(blocks).forEach(([type, block]) => {
     const blockType = blockTypes[type];
-    const { importStatement, ext } = blockType;
+    const { importStatement, ext, pathsRegex } = blockType;
 
     if (block.scoped) {
       const scopedCSS = scopeCSS(path, block.content, body);
@@ -110,6 +113,7 @@ function parseBlocks(content, path) {
       body = scopedCSS.body;
     }
 
+    block.content = fixPaths(path, block.content, pathsRegex);
     block.file = getHashedPath(path, block.content, block.lang || ext);
 
     let { bundle } = block;
@@ -133,17 +137,17 @@ function parseBlocks(content, path) {
   };
 }
 
-// deleting blocks and determining the contents of the block file
+
 function extractBlocks(body, path) {
   const blocks = {};
 
   Object.entries(blockTypes).forEach(([type, blockType]) => {
-    const { tagsRegex, validAttributes, pathsRegex } = blockType;
+    const { tagsRegex, validAttributes } = blockType;
 
     body = body.replace(tagsRegex, function(){
       const captures = arguments[arguments.length - 1];
       const block = {
-        content: fixPaths(path, captures.block, pathsRegex)
+        content: captures.block
       };
 
       if (captures.attributes) {
@@ -168,22 +172,6 @@ function extractBlocks(body, path) {
     body,
     blocks
   }
-}
-
-function buildBlock(path, captures, blockType) {
-  const { tagsRegex, validAttributes, pathsRegex } = blockType;
-  const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, capture, ['name', 'value']);
-  const hasValidAttributes = attributes.every(attr => validAttributes.includes(attr.name));
-
-  if (!attributes.length || !hasValidAttributes) {
-    return null;
-  }
-
-  return attributes.reduce((block, attr) => {
-    block[attr.name] = attr.value || true;
-  }, {
-    content: fixPaths(path, captures.block, pathsRegex)
-  });
 }
 
 function writeBlockFiles(blocks) {
