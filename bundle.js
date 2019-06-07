@@ -25,14 +25,14 @@ const exts = '(.beard$)';
 const regex = new RegExp('(.beard$)', 'g');
 
 
-const blockTypes = [
-  {
+const blockTypes = {
+  ssjs: {
     type: 'ssjs',
     tagsRegex: /<script\shandle>(?<block>[\s\S]*?)<\/script>/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     ext: 'ssjs.js'
   },
-  {
+  css: {
     type: 'css',
     tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/style>/gmi,
     validAttributes: ['bundle', 'lang', 'scoped'],
@@ -40,7 +40,7 @@ const blockTypes = [
     importStatement: (path) => `@import './${path}';`,
     ext: 'scss'
   },
-  {
+  js: {
     type: 'js',
     tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/script>/gmi,
     validAttributes: ['bundle', 'lang'],
@@ -48,13 +48,7 @@ const blockTypes = [
     importStatement: (path) => `import './${path}';`,
     ext: 'js'
   }
-];
-
-const blockTypesMap = {
-  ssjs: blockTypes[0],
-  css: blockTypes[1],
-  js: blockTypes[2]
-}
+};
 
 
 let root;
@@ -70,10 +64,11 @@ exports.bundle = (rootDir) => {
   fse.removeSync(beardDir);
   fse.ensureDirSync(beardDir);
 
-  blockTypes[1].bundles = {
+  blockTypes.css.bundles = {
     entry: []
   };
-  blockTypes[2].bundles = {
+
+  blockTypes.js.bundles = {
     entry: []
   };
 
@@ -92,7 +87,8 @@ exports.bundle = (rootDir) => {
     }
   });
 
-  writeEntryFiles();
+  writeEntryFile('css');
+  writeEntryFile('js');
 
   return {
     templates,
@@ -104,12 +100,12 @@ exports.bundle = (rootDir) => {
 function parseBlocks(content, path) {
   let { body, blocks } = extractBlocks(content, path);
 
-  Object.entries(blocks).forEach(([key, block]) => {
-    const blockType = blockTypesMap[key];
-    const { type, importStatement, ext } = blockType;
+  Object.entries(blocks).forEach(([type, block]) => {
+    const blockType = blockTypes[type];
+    const { importStatement, ext } = blockType;
 
     if (block.scoped) {
-      const scopedCSS = scopeStyles(path, block.content, body);
+      const scopedCSS = scopeCSS(path, block.content, body);
       block.content = scopedCSS.styles;
       body = scopedCSS.body;
     }
@@ -141,8 +137,8 @@ function parseBlocks(content, path) {
 function extractBlocks(body, path) {
   const blocks = {};
 
-  blockTypes.forEach((blockType) => {
-    const { type, tagsRegex, validAttributes, pathsRegex } = blockType;
+  Object.entries(blockTypes).forEach(([type, blockType]) => {
+    const { tagsRegex, validAttributes, pathsRegex } = blockType;
 
     body = body.replace(tagsRegex, function(){
       const captures = arguments[arguments.length - 1];
@@ -174,17 +170,32 @@ function extractBlocks(body, path) {
   }
 }
 
+function buildBlock(path, captures, blockType) {
+  const { tagsRegex, validAttributes, pathsRegex } = blockType;
+  const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, capture, ['name', 'value']);
+  const hasValidAttributes = attributes.every(attr => validAttributes.includes(attr.name));
+
+  if (!attributes.length || !hasValidAttributes) {
+    return null;
+  }
+
+  return attributes.reduce((block, attr) => {
+    block[attr.name] = attr.value || true;
+  }, {
+    content: fixPaths(path, captures.block, pathsRegex)
+  });
+}
+
 function writeBlockFiles(blocks) {
   Object.entries(blocks).forEach(([key, block]) => {
     fs.writeFileSync(`${beardDir}/${block.file}`, block.content);
   });
 }
 
-function writeEntryFiles() {
-  [blockTypes[1], blockTypes[2]].forEach((blockType) => {
-    Object.keys(blockType.bundles).forEach((bundle) => {
-      fs.writeFileSync(`${beardDir}/${bundle}.${blockType.type}`, blockType.bundles[bundle].join('\n'));
-    });
+function writeEntryFile(type) {
+  const { bundles } = blockTypes[type];
+  Object.keys(bundles).forEach((bundle) => {
+    fs.writeFileSync(`${beardDir}/${bundle}.${type}`, bundles[bundle].join('\n'));
   });
 }
 
@@ -201,7 +212,7 @@ function fixPaths(path, block, pathsRegex) {
   });
 }
 
-function scopeStyles(path, content, body) {
+function scopeCSS(path, blockContent, body) {
   const $ = cheerio.load(body, {
     withDomLvl1: false,
     normalizeWhitespace: false,
@@ -209,15 +220,15 @@ function scopeStyles(path, content, body) {
     decodeEntities: false
   });
 
-  const styles = replaceStyleNames(content, (styleDeclaration) => {
-    const { name, style, selectors } = styleDeclaration;
-    const scopedClassName = `.beard-${hash(path.replace(root, '') + name + style)}`;
+  const styles = replaceSelectors(blockContent, (declaration) => {
+    const { name, content, selectors } = declaration;
+    const scopedClass = `.beard-${hash(path.replace(root, '') + name + content)}`;
     selectors.forEach(selector => {
       if ($(selector)) {
-        $(selector).addClass(scopedClassName.replace(/^\./, ''));
+        $(selector).addClass(scopedClass.replace(/^\./, ''));
       }
     });
-    return scopedClassName;
+    return scopedClass;
   });
 
   return {
@@ -226,7 +237,7 @@ function scopeStyles(path, content, body) {
   };
 }
 
-function replaceStyleNames(css, callback) {
+function replaceSelectors(css, callback) {
   const matches = XRegExp.matchRecursive(css, '{', '}', 'g', {
     valueNames: ['name', null, 'style', null]
   });
@@ -237,17 +248,17 @@ function replaceStyleNames(css, callback) {
         return {
           name: match.value,
           selectors: match.value.split(',').map(name => name.trim()).filter(name => ![':', '/*', '//'].includes(name)),
-          style: matches[m + 1].value
+          content: matches[m + 1].value
         };
       }
     })
     .filter(match => match)
     .map(style => {
       if (style.name.trim().startsWith('@')) {
-        const mediaStyles = replaceStyleNames(style.style, callback);
+        const mediaStyles = replaceSelectors(style.content, callback);
         return `${style.name} {${mediaStyles}}`;
       } else {
-        return `${callback(style)} {${style.style}}`;
+        return `${callback(style)} {${style.content}}`;
       }
     }).join('\n');
 }
