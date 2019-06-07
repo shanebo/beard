@@ -21,7 +21,6 @@ const cheerio = require('cheerio');
 const XRegExp = require('xregexp');
 const mismatch = require('mismatch');
 const { cleanWhitespace, hash } = require('./utils');
-
 const exts = '(.beard$)';
 const regex = new RegExp('(.beard$)', 'g');
 
@@ -74,11 +73,20 @@ exports.bundle = (rootDir) => {
 
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
-    const body = bundleBlocks(path, key);
+    const contents = fs.readFileSync(path, 'utf8');
+    const parsedTemplate = extractBlocks(contents, path);
+    const { body, blocks } = parsedTemplate;
+
+    writeBlockFiles(blocks);
+
     templates[key] = cleanWhitespace(body);
+
+    if (blocks.ssjs) {
+      handles[key] = require(`${beardDir}/${blocks.ssjs.file}`);
+    }
   });
 
-  writeAssetEntryFiles();
+  writeEntryFiles();
 
   return {
     templates,
@@ -86,8 +94,86 @@ exports.bundle = (rootDir) => {
   };
 }
 
+// deleting blocks and determining the contents of the block file
+function extractBlocks(body, path) {
+  const blocks = {};
 
-function writeAssetEntryFiles() {
+  blockTypes.forEach((blockType) => {
+    const { type, tagsRegex, validAttributes, importStatement, pathsRegex, ext } = blockType;
+
+    body = body.replace(tagsRegex, function(){
+      const captures = arguments[arguments.length - 1];
+      const block = {
+        block: fixPaths(path, captures.block, pathsRegex)
+      };
+
+      if (captures.attributes) {
+        const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, captures.attributes, ['name', 'value']);
+        const hasValidAttributes = attributes.every(attr => validAttributes.includes(attr.name));
+
+        if (!attributes.length || !hasValidAttributes) {
+          return arguments[0];
+        }
+
+        attributes.forEach((attr) => {
+          block[attr.name] = attr.value || true;
+        });
+      }
+
+      blocks[type] = block;
+      return '';
+    });
+  });
+
+
+  blockTypes.forEach((blockType) => {
+    const { type, tagsRegex, validAttributes, importStatement, pathsRegex, ext } = blockType;
+
+    // later fix where we iterate through blocks instead of blockTypes
+    const block = blocks[type];
+    if (!block) return;
+
+    if (block.scoped) {
+      const scopedCSS = scopeStyles(path, block.block, body);
+      block.block = scopedCSS.styles;
+      body = scopedCSS.body;
+    }
+
+    block.file = getHashedPath(path, block.block, block.lang || ext);
+
+    // do type specific things
+    let { bundle } = block;
+
+    if (type !== 'ssjs') {
+      if (!bundle) {
+        bundle = 'entry';
+      }
+
+      if (!blockType.bundles[bundle]) {
+        blockType.bundles[bundle] = [];
+      }
+
+      blockType.bundles[bundle].push(importStatement(block.file));
+    }
+  });
+
+  blocks.body = body;
+
+  // console.log({ blocks });
+  return {
+    body,
+    blocks
+  };
+}
+
+function writeBlockFiles(blocks) {
+  Object.entries(blocks).forEach(([key, value]) => {
+    const { block, file } = value;
+    fs.writeFileSync(`${beardDir}/${file}`, block);
+  });
+}
+
+function writeEntryFiles() {
   [blockTypes[1], blockTypes[2]].forEach((blockType) => {
     Object.keys(blockType.bundles).forEach((bundle) => {
       fs.writeFileSync(`${beardDir}/${bundle}.${blockType.type}`, blockType.bundles[bundle].join('\n'));
@@ -95,68 +181,10 @@ function writeAssetEntryFiles() {
   });
 }
 
-function bundleBlocks(path, key) {
-  let body = fs.readFileSync(path, 'utf8');
-
-  blockTypes.forEach((blockType) => {
-    const { type, ext, tagsRegex, validAttributes, pathsRegex, importStatement } = blockType;
-
-    const blockMatches = [];
-    body = body.replace(tagsRegex, function(){
-      const args = [...arguments];
-      const captures = args[args.length - 1];
-      const blockMatch = { block: captures.block };
-
-      if (captures.attributes) {
-        const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, captures.attributes, ['name', 'value']);
-
-        if (!attributes.length || !attributes.every(attr => validAttributes.includes(attr.name))) return args[0];
-
-        attributes.forEach((attr) => {
-          blockMatch[attr.name] = attr.value || true;
-        });
-      }
-
-      blockMatches.push(blockMatch);
-      return '';
-    });
-
-    blockMatches.forEach((blockMatch) => {
-      let { scoped, bundle, lang, block } = blockMatch;
-      let bundleName = bundle;
-
-      block = fixPaths(path, block, pathsRegex);
-
-      if (type === 'css' && scoped) {
-        const scopedCSS = scopeStyles(path, block, body);
-        block = scopedCSS.styles;
-        body = scopedCSS.body;
-      }
-
-      const assetHash = md5(block).slice(-8);
-      const partialPath = `${basename(path, extname(path))}.${assetHash}.${lang || ext}`;
-      fs.writeFileSync(`${beardDir}/${partialPath}`, block);
-
-      if (blockType.bundles) {
-        if (!bundleName) {
-          bundleName = 'entry';
-        }
-
-        if (!blockType.bundles[bundleName]) {
-          blockType.bundles[bundleName] = [];
-        }
-
-        blockType.bundles[bundleName].push(importStatement(partialPath));
-
-      } else {
-        handles[key] = require(`${beardDir}/${partialPath}`);
-      }
-    });
-  });
-
-  return body;
+function getHashedPath(path, block, ext) {
+  const assetHash = md5(block).slice(-8);
+  return `${basename(path, extname(path))}.${assetHash}.${ext}`;
 }
-
 
 function fixPaths(path, block, pathsRegex) {
   return block.replace(pathsRegex, (match, _, importPath) => {
@@ -165,9 +193,6 @@ function fixPaths(path, block, pathsRegex) {
     return match.replace(importPath, newImportPath);
   });
 }
-
-
-// SCOPED CSS BELOW
 
 function scopeStyles(path, content, body) {
   const $ = cheerio.load(body, {
@@ -179,13 +204,13 @@ function scopeStyles(path, content, body) {
 
   const styles = replaceStyleNames(content, (styleDeclaration) => {
     const { name, style, selectors } = styleDeclaration;
-    const newStyleName = `.beard-${hash(path.replace(root, '') + name + style)}`;
+    const scopedClassName = `.beard-${hash(path.replace(root, '') + name + style)}`;
     selectors.forEach(selector => {
       if ($(selector)) {
-        $(selector).addClass(newStyleName.replace(/^\./, ''));
+        $(selector).addClass(scopedClassName.replace(/^\./, ''));
       }
     });
-    return newStyleName;
+    return scopedClassName;
   });
 
   return {
@@ -193,7 +218,6 @@ function scopeStyles(path, content, body) {
     body: $.html()
   };
 }
-
 
 function replaceStyleNames(css, callback) {
   const matches = XRegExp.matchRecursive(css, '{', '}', 'g', {
