@@ -50,6 +50,12 @@ const blockTypes = [
   }
 ];
 
+const blockTypesMap = {
+  ssjs: blockTypes[0],
+  css: blockTypes[1],
+  js: blockTypes[2]
+}
+
 
 let root;
 let beardDir;
@@ -74,7 +80,7 @@ exports.bundle = (rootDir) => {
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
     const contents = fs.readFileSync(path, 'utf8');
-    const parsedTemplate = extractBlocks(contents, path);
+    const parsedTemplate = parseBlocks(contents, path);
     const { body, blocks } = parsedTemplate;
 
     writeBlockFiles(blocks);
@@ -94,17 +100,54 @@ exports.bundle = (rootDir) => {
   };
 }
 
+
+function parseBlocks(content, path) {
+  let { body, blocks } = extractBlocks(content, path);
+
+  Object.entries(blocks).forEach(([key, block]) => {
+    const blockType = blockTypesMap[key];
+    const { type, importStatement, ext } = blockType;
+
+    if (block.scoped) {
+      const scopedCSS = scopeStyles(path, block.content, body);
+      block.content = scopedCSS.styles;
+      body = scopedCSS.body;
+    }
+
+    block.file = getHashedPath(path, block.content, block.lang || ext);
+
+    let { bundle } = block;
+
+    if (type !== 'ssjs') {
+      if (!bundle) {
+        bundle = 'entry';
+      }
+
+      if (!blockType.bundles[bundle]) {
+        blockType.bundles[bundle] = [];
+      }
+
+      blockType.bundles[bundle].push(importStatement(block.file));
+    }
+  });
+
+  return {
+    body,
+    blocks
+  };
+}
+
 // deleting blocks and determining the contents of the block file
 function extractBlocks(body, path) {
   const blocks = {};
 
   blockTypes.forEach((blockType) => {
-    const { type, tagsRegex, validAttributes, importStatement, pathsRegex, ext } = blockType;
+    const { type, tagsRegex, validAttributes, pathsRegex } = blockType;
 
     body = body.replace(tagsRegex, function(){
       const captures = arguments[arguments.length - 1];
       const block = {
-        block: fixPaths(path, captures.block, pathsRegex)
+        content: fixPaths(path, captures.block, pathsRegex)
       };
 
       if (captures.attributes) {
@@ -125,51 +168,15 @@ function extractBlocks(body, path) {
     });
   });
 
-
-  blockTypes.forEach((blockType) => {
-    const { type, tagsRegex, validAttributes, importStatement, pathsRegex, ext } = blockType;
-
-    // later fix where we iterate through blocks instead of blockTypes
-    const block = blocks[type];
-    if (!block) return;
-
-    if (block.scoped) {
-      const scopedCSS = scopeStyles(path, block.block, body);
-      block.block = scopedCSS.styles;
-      body = scopedCSS.body;
-    }
-
-    block.file = getHashedPath(path, block.block, block.lang || ext);
-
-    // do type specific things
-    let { bundle } = block;
-
-    if (type !== 'ssjs') {
-      if (!bundle) {
-        bundle = 'entry';
-      }
-
-      if (!blockType.bundles[bundle]) {
-        blockType.bundles[bundle] = [];
-      }
-
-      blockType.bundles[bundle].push(importStatement(block.file));
-    }
-  });
-
-  blocks.body = body;
-
-  // console.log({ blocks });
   return {
     body,
     blocks
-  };
+  }
 }
 
 function writeBlockFiles(blocks) {
-  Object.entries(blocks).forEach(([key, value]) => {
-    const { block, file } = value;
-    fs.writeFileSync(`${beardDir}/${file}`, block);
+  Object.entries(blocks).forEach(([key, block]) => {
+    fs.writeFileSync(`${beardDir}/${block.file}`, block.content);
   });
 }
 
