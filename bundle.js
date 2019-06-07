@@ -224,9 +224,9 @@ function replaceStyleNames(css, callback) {
     })
     .filter(match => match)
     .map(style => {
-      if (style.name.startsWith('@')) {
+      if (style.name.trim().startsWith('@')) {
         const mediaStyles = replaceStyleNames(style.style, callback);
-        return `${callback(style)} {${mediaStyles}}`;
+        return `${style.name} {${mediaStyles}}`;
       } else {
         return `${callback(style)} {${style.style}}`;
       }
