@@ -44,8 +44,8 @@ const blockTypes = {
   },
   js: {
     type: 'js',
-    // tagsRegex: /<script(?<attributes>((?!src=).)*?)>(?<block>[\s\S]+?)<\/script>/gmi,
-    tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/script>/gmi,
+    tagsRegex: /<script(?<attributes>((?!src=).)*?)>(?<block>[\s\S]+?)<\/script>/gmi,
+    // tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/script>/gmi,
     validAttributes: ['bundle', 'lang'],
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     importStatement: (path) => `import './${path}';`,
@@ -152,11 +152,12 @@ function extractBlocks(body, path) {
 
       if (captures.attributes) {
         const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, captures.attributes, ['name', 'value']);
-        const hasValidAttributes = attributes.every(attr => validAttributes.includes(attr.name));
+        // const hasValidAttributes = attributes.every(attr => validAttributes.includes(attr.name));
 
-        if (!attributes.length || !hasValidAttributes) {
-          return arguments[0];
-        }
+        // if (!attributes.length) {
+        //   // if (!attributes.length || !hasValidAttributes) {
+        //   return arguments[0];
+        // }
 
         attributes.forEach((attr) => {
           block[attr.name] = attr.value || true;
