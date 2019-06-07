@@ -31,22 +31,24 @@ const regex = new RegExp('(.beard$)', 'g');
 const blockTypes = [
   {
     type: 'ssjs',
-    tagsRegex: /<script\shandle>(?<block>[\s\S]+?)<\/script>/gmi,
+    tagsRegex: /<script\shandle>(?<block>[\s\S]*?)<\/script>/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     ext: 'ssjs.js'
   },
   {
     type: 'css',
-    tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/style>/gmi,
+    tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/style>/gmi,
     attributesRegex: /(bundle|lang|scoped)(?:="(.+?)")?/gmi,
+    validAttributes: ['bundle', 'lang', 'scoped'],
     pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
     importStatement: (path) => `@import './${path}';`,
     ext: 'scss'
   },
   {
     type: 'js',
-    tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]+?)<\/script>/gmi,
+    tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/script>/gmi,
     attributesRegex: /(bundle)(?:="(.+?)")?/gmi,
+    validAttributes: ['bundle', 'lang'],
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     importStatement: (path) => `import './${path}';`,
     ext: 'js'
@@ -106,17 +108,23 @@ function bundleBlocks(path, key) {
   let body = fs.readFileSync(path, 'utf8');
 
   blockTypes.forEach((blockType) => {
-    const { type, ext, tagsRegex, attributesRegex, pathsRegex, importStatement } = blockType;
+    const { type, ext, tagsRegex, validAttributes, pathsRegex, importStatement } = blockType;
 
     const blockMatches = [];
     body = body.replace(tagsRegex, function(){
       const args = [...arguments];
       const captures = args[args.length - 1];
-
       const blockMatch = { block: captures.block };
 
       if (captures.attributes) {
-        mismatch(attributesRegex, captures.attributes, ['name', 'value']).forEach((attr) => {
+        const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, captures.attributes, ['name', 'value']);
+
+        console.log({ attributes });
+
+
+        if (!attributes.length || !attributes.every(attr => validAttributes.includes(attr.name))) return args[0];
+
+        attributes.forEach((attr) => {
           blockMatch[attr.name] = attr.value || attr.name;
         });
       }
