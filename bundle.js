@@ -77,13 +77,15 @@ exports.bundle = (rootDir) => {
 
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
-    const contents = fs.readFileSync(path, 'utf8');
+    const contents = fs.readFileSync(path, 'utf8').replace(/(?=<!--)([\s\S]*?)-->/gm, ''); // removes commented out blocks first
     const parsedTemplate = parseBlocks(contents, path);
     const { body, blocks } = parsedTemplate;
 
     writeBlockFiles(blocks);
 
     templates[key] = cleanWhitespace(body);
+
+    // fs.writeFileSync(`${beardDir}/${getHashedPath(path, body, 'beard')}`, body);
 
     if (blocks.ssjs) {
       handles[key] = require(`${beardDir}/${blocks.ssjs.file}`);
@@ -205,7 +207,7 @@ function scopeCSS(path, blockContent, body) {
   const $ = cheerio.load(body, {
     withDomLvl1: false,
     normalizeWhitespace: false,
-    xmlMode: true,
+    xmlMode: false,
     decodeEntities: false
   });
 
@@ -222,7 +224,7 @@ function scopeCSS(path, blockContent, body) {
 
   return {
     styles,
-    body: $.html()
+    body: $.html().replace(/^<html><head><\/head><body>|<\/body><\/html>$/gm, '')
   };
 }
 
