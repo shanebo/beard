@@ -30,12 +30,14 @@ const regex = new RegExp('(.beard$)', 'g');
 const blockTypes = {
   ssjs: {
     type: 'ssjs',
+    tag: 'script[handle]',
     tagsRegex: /<script\shandle>(?<block>[\s\S]*?)<\/script>/gmi,
     pathsRegex: /(import|require)[^'"`]+['"`]([\.\/][^'"`]+)['"`]/gmi,
     ext: 'ssjs.js'
   },
   css: {
     type: 'css',
+    tag: 'style',
     tagsRegex: /<style(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/style>/gmi,
     validAttributes: ['bundle', 'lang', 'scoped'],
     pathsRegex: /(@import|url)\s*["'\(]*([^'"\)]+)/gmi,
@@ -44,6 +46,7 @@ const blockTypes = {
   },
   js: {
     type: 'js',
+    tag: 'script:not(script[handle]):not(script[src])',
     tagsRegex: /<script(?<attributes>((?!src=).)*?)>(?<block>[\s\S]+?)<\/script>/gmi,
     // tagsRegex: /<script(?<attributes>[^>]*)>(?<block>[\s\S]*?)<\/script>/gmi,
     validAttributes: ['bundle', 'lang'],
@@ -58,6 +61,9 @@ let root;
 let beardDir;
 const handles = {};
 const templates = {};
+
+
+let removeTags = [];
 
 
 exports.bundle = (rootDir) => {
@@ -78,14 +84,40 @@ exports.bundle = (rootDir) => {
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
     const contents = fs.readFileSync(path, 'utf8').replace(/(?=<!--)([\s\S]*?)-->/gm, ''); // removes commented out blocks first
-    const parsedTemplate = parseBlocks(contents, path);
-    const { body, blocks } = parsedTemplate;
+    const contents = fs.readFileSync(path, 'utf8');
+
+    removeTags = [/<html.*>/gm, /<\/html>/gm, /<body.*>/gm, /<\/body>/gm, /<head>/gm, /<\/head>/gm].filter(regex => !regex.test(contents));
+
+    const $ = cheerio.load(contents, {
+      withDomLvl1: false,
+      normalizeWhitespace: false,
+      xmlMode: false,
+      decodeEntities: false
+    });
+
+
+    // console.log('\n\n\n\n');
+    // console.log($.html().replace(/=""/gm, ''));
+
+
+    const blocks = parseBlocks($, path);
+
+    console.log('\n\n\n');
+    console.log({ blocks });
+
 
     writeBlockFiles(blocks);
 
-    templates[key] = cleanWhitespace(body);
 
-    // fs.writeFileSync(`${beardDir}/${getHashedPath(path, body, 'beard')}`, body);
+    templates[key] = removeTags.reduce((html, regex) => html.replace(regex, ''), $.html()).replace(/=\"=\"/gm, '==');
+    const body = templates[key];
+
+
+    // templates[key] = cleanWhitespace($.html());
+    // templates[key] = cleanWhitespace($.html().replace(/=\\"\\"/gm, ''));
+    // templates[key] = cleanWhitespace($.html().replace(/^<html><head><\/head><body>|<\/body><\/html>$/gm, ''));
+
+    fs.writeFileSync(`${beardDir}/${getHashedPath(path, body, 'beard')}`, body);
 
     if (blocks.ssjs) {
       handles[key] = require(`${beardDir}/${blocks.ssjs.file}`);
@@ -102,17 +134,15 @@ exports.bundle = (rootDir) => {
 }
 
 
-function parseBlocks(content, path) {
-  let { body, blocks } = extractBlocks(content, path);
+function parseBlocks($, path) {
+  const blocks = extractBlocks($, path);
 
   Object.entries(blocks).forEach(([type, block]) => {
     const blockType = blockTypes[type];
     const { importStatement, ext, pathsRegex } = blockType;
 
-    if (block.scoped) {
-      const scopedCSS = scopeCSS(path, block.content, body);
-      block.content = scopedCSS.styles;
-      body = scopedCSS.body;
+    if (block.hasOwnProperty('scoped')) {
+      block.content = scopeCSS(path, block.content, $);
     }
 
     block.content = fixPaths(path, block.content, pathsRegex);
@@ -133,14 +163,11 @@ function parseBlocks(content, path) {
     }
   });
 
-  return {
-    body,
-    blocks
-  };
+  return blocks;
 }
 
 
-function extractBlocks(body, path) {
+function extractBlocks($) {
   const blocks = {};
 
   Object.entries(blockTypes).forEach(([type, blockType]) => {
@@ -165,16 +192,16 @@ function extractBlocks(body, path) {
           block[attr.name] = attr.value || true;
         });
       }
+    const { tag } = blockType;
 
+    $(tag).each((i, el) => {
+      const block = { ...{ content: $(el).text() }, ...el.attribs };
       blocks[type] = block;
-      return '';
+      $(el).remove();
     });
   });
 
-  return {
-    body,
-    blocks
-  }
+  return blocks;
 }
 
 function writeBlockFiles(blocks) {
@@ -203,14 +230,7 @@ function fixPaths(path, block, pathsRegex) {
   });
 }
 
-function scopeCSS(path, blockContent, body) {
-  const $ = cheerio.load(body, {
-    withDomLvl1: false,
-    normalizeWhitespace: false,
-    xmlMode: false,
-    decodeEntities: false
-  });
-
+function scopeCSS(path, blockContent, $) {
   const styles = replaceSelectors(blockContent, (declaration) => {
     const { name, content, selectors } = declaration;
     const scopedClass = `.beard-${hash(path.replace(root, '') + name + content)}`;
@@ -222,10 +242,7 @@ function scopeCSS(path, blockContent, body) {
     return scopedClass;
   });
 
-  return {
-    styles,
-    body: $.html().replace(/^<html><head><\/head><body>|<\/body><\/html>$/gm, '')
-  };
+  return styles;
 }
 
 function replaceSelectors(css, callback) {
