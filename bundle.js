@@ -83,17 +83,31 @@ exports.bundle = (rootDir) => {
 
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
-    const contents = fs.readFileSync(path, 'utf8').replace(/(?=<!--)([\s\S]*?)-->/gm, ''); // removes commented out blocks first
+    // const contents = fs.readFileSync(path, 'utf8').replace(/(?=<!--)([\s\S]*?)-->/gm, '');
+    // removes commented out blocks first
     const contents = fs.readFileSync(path, 'utf8');
 
-    removeTags = [/<html.*>/gm, /<\/html>/gm, /<body.*>/gm, /<\/body>/gm, /<head>/gm, /<\/head>/gm].filter(regex => !regex.test(contents));
+    removeTags = [/<html.*?>/gm, /<\/html>/gm, /<body.*?>/gm, /<\/body>/gm, /<head>/gm, /<\/head>/gm].filter(regex => !regex.test(contents));
 
     const $ = cheerio.load(contents, {
       withDomLvl1: false,
       normalizeWhitespace: false,
       xmlMode: false,
-      decodeEntities: false
+      decodeEntities: false,
+      lowerCaseAttributeNames: false
+      // xml: {
+      //   decodeEntities: false,
+      //   lowerCaseAttributeNames: false
+      // }
     });
+
+    // const $ = cheerio.load(contents, {
+    //   withDomLvl1: false,
+    //   normalizeWhitespace: true,
+    //   xmlMode: false,
+    //   decodeEntities: false,
+    //   lowerCaseAttributeNames: false
+    // });
 
 
     // console.log('\n\n\n\n');
@@ -102,15 +116,15 @@ exports.bundle = (rootDir) => {
 
     const blocks = parseBlocks($, path);
 
-    console.log('\n\n\n');
-    console.log({ blocks });
+    // console.log('\n\n\n');
+    // console.log({ blocks });
 
 
     writeBlockFiles(blocks);
 
 
-    templates[key] = removeTags.reduce((html, regex) => html.replace(regex, ''), $.html()).replace(/=\"=\"/gm, '==');
-    const body = templates[key];
+    const body = cleanWhitespace(removeTags.reduce((html, regex) => html.replace(regex, ''), $.html()).replace(/=\"=\"/gm, '==').replace(/=\"==\"/gm, '==='));
+    templates[key] = body;
 
 
     // templates[key] = cleanWhitespace($.html());
@@ -171,31 +185,11 @@ function extractBlocks($) {
   const blocks = {};
 
   Object.entries(blockTypes).forEach(([type, blockType]) => {
-    const { tagsRegex, validAttributes } = blockType;
-
-    body = body.replace(tagsRegex, function(){
-      const captures = arguments[arguments.length - 1];
-      const block = {
-        content: captures.block
-      };
-
-      if (captures.attributes) {
-        const attributes = mismatch(/\s*([^=]+)(?:="(.+?)")?/gmi, captures.attributes, ['name', 'value']);
-        // const hasValidAttributes = attributes.every(attr => validAttributes.includes(attr.name));
-
-        // if (!attributes.length) {
-        //   // if (!attributes.length || !hasValidAttributes) {
-        //   return arguments[0];
-        // }
-
-        attributes.forEach((attr) => {
-          block[attr.name] = attr.value || true;
-        });
-      }
     const { tag } = blockType;
 
     $(tag).each((i, el) => {
-      const block = { ...{ content: $(el).text() }, ...el.attribs };
+      const block = { ...{ content: $(el).get()[0].children[0].data }, ...el.attribs };
+      // const block = { ...{ content: $(el).text() }, ...el.attribs };
       blocks[type] = block;
       $(el).remove();
     });
