@@ -63,7 +63,7 @@ const handles = {};
 const templates = {};
 
 
-let removeTags = [];
+// let removeTags = [];
 
 
 exports.bundle = (rootDir) => {
@@ -84,10 +84,9 @@ exports.bundle = (rootDir) => {
   traversy(root, exts, (path) => {
     const key = path.replace(regex, '');
     // const contents = fs.readFileSync(path, 'utf8').replace(/(?=<!--)([\s\S]*?)-->/gm, '');
-    // removes commented out blocks first
     const contents = fs.readFileSync(path, 'utf8');
 
-    removeTags = [/<html.*?>/gm, /<\/html>/gm, /<body.*?>/gm, /<\/body>/gm, /<head>/gm, /<\/head>/gm].filter(regex => !regex.test(contents));
+    // removeTags = [/<html.*?>/gm, /<\/html>/gm, /<body.*?>/gm, /<\/body>/gm, /<head>/gm, /<\/head>/gm].filter(regex => !regex.test(contents));
 
     const $ = cheerio.load(contents, {
       withDomLvl1: false,
@@ -95,41 +94,15 @@ exports.bundle = (rootDir) => {
       xmlMode: false,
       decodeEntities: false,
       lowerCaseAttributeNames: false
-      // xml: {
-      //   decodeEntities: false,
-      //   lowerCaseAttributeNames: false
-      // }
     });
-
-    // const $ = cheerio.load(contents, {
-    //   withDomLvl1: false,
-    //   normalizeWhitespace: true,
-    //   xmlMode: false,
-    //   decodeEntities: false,
-    //   lowerCaseAttributeNames: false
-    // });
-
-
-    // console.log('\n\n\n\n');
-    // console.log($.html().replace(/=""/gm, ''));
-
 
     const blocks = parseBlocks($, path);
 
-    // console.log('\n\n\n');
-    // console.log({ blocks });
-
-
     writeBlockFiles(blocks);
 
-
-    const body = cleanWhitespace(removeTags.reduce((html, regex) => html.replace(regex, ''), $.html()).replace(/=\"=\"/gm, '==').replace(/=\"==\"/gm, '==='));
+    const body = cleanWhitespace($.html().replace(/=\"=(=?)\"/gm, '==$1'));
+    // const body = cleanWhitespace(removeTags.reduce((html, regex) => html.replace(regex, ''), $.html()).replace(/=\"=\"/gm, '==').replace(/=\"==\"/gm, '==='));
     templates[key] = body;
-
-
-    // templates[key] = cleanWhitespace($.html());
-    // templates[key] = cleanWhitespace($.html().replace(/=\\"\\"/gm, ''));
-    // templates[key] = cleanWhitespace($.html().replace(/^<html><head><\/head><body>|<\/body><\/html>$/gm, ''));
 
     fs.writeFileSync(`${beardDir}/${getHashedPath(path, body, 'beard')}`, body);
 
@@ -189,7 +162,6 @@ function extractBlocks($) {
 
     $(tag).each((i, el) => {
       const block = { ...{ content: $(el).get()[0].children[0].data }, ...el.attribs };
-      // const block = { ...{ content: $(el).text() }, ...el.attribs };
       blocks[type] = block;
       $(el).remove();
     });
