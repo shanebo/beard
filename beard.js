@@ -27,14 +27,14 @@ class Beard {
     }
 
     if (this.opts.customTags) {
-      exps.customTag = new RegExp('^(' + Object.keys(this.opts.customTags).join('|') + ")\\\s+([^,]+)(,\\\s*((?!(,\\\s*content)|(content\\\s*$))[\\\s\\\S])*)?$");
-    }
+      const tags = Object.keys(this.opts.customTags).join('|');
+      exps.customTag = new RegExp(`^(${tags})\\\s+([^,]+)(?:,\\\s*([\\\s\\\S]*))?$`);
 
-    if (this.opts.customContentTags) {
-      exps.customContentTag = new RegExp('^(' + Object.keys(this.opts.customContentTags).join('|') + ")\\\s+([^,]+)(,\\\s*((?!(,\\\s*content)|(content\\\s*$))[\\\s\\\S])*)?,\\\s*content$");
-      exps.endCustomTag = new RegExp('^end(' + Object.keys(this.opts.customContentTags).join('|') + ')$');
-    } else {
-      this.opts.customContentTags = {};
+      const contentTags = Object.keys(this.opts.customTags).filter((key) => this.opts.customTags[key].content).join('|');
+      if (contentTags.length) {
+        exps.customContentTag = new RegExp(`^(${contentTags})\\\:content\\\s+([^,]+)(?:,\\\s*([\\\s\\\S]*))?$`);
+        exps.endCustomTag = new RegExp(`^end(${contentTags})$`);
+      }
     }
   }
 
@@ -46,18 +46,14 @@ class Beard {
     return this.fns[key];
   }
 
-  customTag(name, parentPath, path, data = {}) {
-    const resolvedPath = resolvePath(path, parentPath, this.opts.root);
-    if (this.opts.customContentTags.hasOwnProperty(name)) {
-      return this.opts.customContentTags[name](resolvedPath, data, this.handles, this.render.bind(this));
-    }
-    return this.opts.customTags[name](resolvedPath, data, this.handles, this.render.bind(this));
+  customTag(name, parentPath, firstArg, data = {}) {
+    if (this.opts.customTags[name].firstArgIsResolvedPath) firstArg = resolvePath(firstArg, parentPath);
+    return this.opts.customTags[name].render(firstArg, data, this.handles, this.render.bind(this));
   }
 
-  customContentTag(name, parentPath, path, data, content) {
+  customContentTag(name, parentPath, firstArg, data, content) {
     data.content = content;
-    const resolvedPath = resolvePath(path, parentPath, this.opts.root);
-    return this.opts.customContentTags[name](resolvedPath, data, this.handles, this.render.bind(this));
+    return this.customTag(name, parentPath, firstArg, data);
   }
 
   include(context, parentPath, path, data = {}) {
@@ -150,8 +146,8 @@ const parse = {
   elseIf:           (_, statement) => `} else if (${statement}) {`,
   else:             () => '} else {',
   end:              () => '}',
-  customTag:        (_, name, path, args) => `_capture(_context.customTag("${name}", _currentPath, ${path} ${args == null ? '' : args}));`,
-  customContentTag: (_, name, path, args) => `_blockNames.push('content'); _blockCaptures.push(''); _capturePaths.push(${path}); _captureArgs.push(${args == null ? '{}' : args.replace(/^,/, '')});`,
+  customTag:        (_, name, firstArg, data) => `_capture(_context.customTag("${name}", _currentPath, ${firstArg}, ${data == null ? '' : data}));`,
+  customContentTag: (_, name, firstArg, data) => `_blockNames.push('content'); _blockCaptures.push(''); _capturePaths.push(${firstArg}); _captureArgs.push(${data == null ? '{}' : data.replace(/^,/, '')});`,
   endCustomTag:     (_, name) => `_blockNames.pop(); _capture(_context.customContentTag("${name}", _currentPath, _capturePaths.pop(), _captureArgs.pop(), _blockCaptures.pop()));`,
   include:          (_, path, args) => `_capture(_context.include(_context, _currentPath, ${path} ${args == null ? '' : args}));`,
   includeContent:   (_, path, args) => `_blockNames.push('content'); _blockCaptures.push(''); _capturePaths.push(${path}); _captureArgs.push(${args == null ? '{}' : args.replace(/^,/, '')});`,
