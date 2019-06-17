@@ -569,10 +569,30 @@ describe('Custom Tags', function() {
         '/views/content': `{{asset '../images/calvin.png'}}`,
       },
       customTags: {
-        asset: (path) => `/dist${path}`
+        asset: {
+          render: (path) => `/dist${path}`,
+          firstArgIsResolvedPath: true,
+          content: false
+        }
       }
     });
     expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
+  });
+
+  it('allows custom tags that do not process the first arg as a path', function() {
+    const engine = beard({
+      templates: {
+        '/view': `{{tag 'a', {href: 'www.google.com', link: 'google'}}}`
+      },
+      customTags: {
+        tag: {
+          render: (tagName, data) => `<${tagName} href="${data.href}">${data.link}</${tagName}>`,
+          firstArgIsResolvedPath: false,
+          content: false
+        }
+      }
+    });
+    expect(engine.render('/view').replace(/\s+/g, ' ')).to.equal('<a href="www.google.com">google</a>');
   });
 
   it('allows custom tags with data', function() {
@@ -582,8 +602,16 @@ describe('Custom Tags', function() {
         '/components/simple': '{{title}} component'
       },
       customTags: {
-        asset: (path) => `/dist${path}`,
-        component: (path, data) => engine.render('/components' + path, data)
+        asset: {
+          render: (path) => `/dist${path}`,
+          firstArgIsResolvedPath: true,
+          content: false
+        },
+        component: {
+          render: (path, data) => engine.render('/components' + path, data),
+          firstArgIsResolvedPath: true,
+          content: false
+        }
       }
     });
     expect(engine.render('view')).to.equal('/dist/calvin.png page Foo component');
@@ -597,12 +625,20 @@ describe('Custom Tags', function() {
         '/foo-bar': 'The {{name}}'
       },
       customTags: {
-        asset: (path) => path,
-        component: (path, data) => engine.render(path, data)
+        asset: {
+          render: (path) => `/dist${path}`,
+          firstArgIsResolvedPath: true,
+          content: false
+        },
+        component: {
+          render: (path, data) => engine.render(path, data),
+          firstArgIsResolvedPath: true,
+          content: false
+        }
       }
     });
     expect(engine.render('view', {assetName: 'calvin.png', componentName: 'simple', other: 'foo_bar'}))
-      .to.equal('/calvin.png page Foo component The Foo Bar');
+      .to.equal('/dist/calvin.png page Foo component The Foo Bar');
   });
 
   it('handles custom tags with block content', function() {
@@ -610,13 +646,17 @@ describe('Custom Tags', function() {
       templates: {
         '/templates/view': `
           top
-          {{component '../header', content}}
+          {{component:content '../header'}}
             <h1>hello world</h1>
           {{endcomponent}}`,
         '/header': '{{content}} component'
       },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
+      customTags: {
+        component: {
+          render: (path, data) => engine.render(path, data),
+          firstArgIsResolvedPath: true,
+          content: true
+        }
       }
     });
     expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' top <h1>hello world</h1> component');
@@ -627,13 +667,17 @@ describe('Custom Tags', function() {
       templates: {
         '/templates/view': `
           top
-          {{component '../header', {title: 'the title'}, content}}
+          {{component:content '../header', {title: 'the title'}}}
             <h1>hello world</h1>
           {{endcomponent}}`,
         '/header': '{{content}} {{title}} component'
       },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
+      customTags: {
+        component: {
+          render: (path, data) => engine.render(path, data),
+          firstArgIsResolvedPath: true,
+          content: true
+        }
       }
     });
     expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
@@ -645,18 +689,22 @@ describe('Custom Tags', function() {
       templates: {
         '/templates/view': `
           top
-          {{component '../header',
+          {{component:content '../header',
             {
               title: 'the title'
-            }, content}}
+            }}}
             <h1>hello world</h1>
             {{component '/sub'}}
           {{endcomponent}}`,
         '/header': '{{content}} {{title}} component',
         '/sub': 'the sub!'
       },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
+      customTags: {
+        component: {
+          render: (path, data) => engine.render(path, data),
+          firstArgIsResolvedPath: true,
+          content: true
+        }
       }
     });
     expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
@@ -670,14 +718,18 @@ describe('Custom Tags', function() {
           {{extends '../layout'}}
           top
           {{block nav}}the nav{{endblock}}
-          {{component '../header', content}}
+          {{component:content '../header'}}
             <h1>hello world</h1>
           {{endcomponent}}`,
         '/header': '{{content}} component',
         '/layout': 'begin {{nav}} {{content}} end'
       },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
+      customTags: {
+        component: {
+          render: (path, data) => engine.render(path, data),
+          firstArgIsResolvedPath: true,
+          content: true
+        }
       }
     });
     expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
