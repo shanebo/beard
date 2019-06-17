@@ -37,7 +37,11 @@ exports.parse = {
     _blockCaptures.push('');
   `,
 
-  blockEnd: () => 'eval(`var ${_blockNames[_blockNames.length - 1]} = _blockCaptures[_blockCaptures.length - 1]`); _context.globals[_blockNames[_blockNames.length - 1]] = _blockCaptures[_blockCaptures.length - 1]; _blockNames.pop(); _blockCaptures.pop();',
+  blockEnd: () => `
+    eval(\`var \${_blockNames[_blockNames.length - 1]} = _blockCaptures[_blockCaptures.length - 1]\`);
+    _context.globals[_blockNames[_blockNames.length - 1]] = _blockCaptures[_blockCaptures.length - 1];
+    _blockNames.pop(); _blockCaptures.pop();
+  `,
 
   put: (_, varname) => `
     _capture(typeof ${varname} !== "undefined" ? ${varname} : "");
@@ -53,13 +57,21 @@ exports.parse = {
 
   comment: () => '',
 
-  if: (_, statement) => `if (${statement}) {`,
+  if: (_, statement) => `
+    if (${statement}) {
+  `,
 
-  elseIf: (_, statement) => `} else if (${statement}) {`,
+  elseIf: (_, statement) => `
+    } else if (${statement}) {
+  `,
 
-  else: () => `} else {`,
+  else: () => `
+    } else {
+  `,
 
-  end: () => `}`,
+  end: () => `
+    }
+  `,
 
   customTag: (_, name, firstArg, data) => `
     _capture(
@@ -126,13 +138,20 @@ exports.parse = {
   for: (_, value, key, objValue) => {
     if (!key) key = `_iterator_${uniqueIterator(value)}`;
     const obj = `_iterator_${uniqueIterator(value)}`;
-    return `var ${obj} = ${objValue}; for (var ${key} in ${obj}) { var ${value} = ${obj}[${key}];`;
+    return `
+      var ${obj} = ${objValue};
+      for (var ${key} in ${obj}) {
+        var ${value} = ${obj}[${key}];
+    `;
   },
 
   each: (_, value, iter, arrValue) => {
     if (!iter) iter = `_iterator_${uniqueIterator(value)}`;
     const length = `_iterator_${uniqueIterator(value)}`;
     const arr = `_iterator_${uniqueIterator(value)}`;
-    return `for (var ${iter} = 0, ${arr} = ${arrValue}, ${length} = ${arr}.length; ${iter} < ${length}; ${iter}++) { var ${value} = ${arr}[${iter}];`;
+    return `
+      for (var ${iter} = 0, ${arr} = ${arrValue}, ${length} = ${arr}.length; ${iter} < ${length}; ${iter}++) {
+        var ${value} = ${arr}[${iter}];
+    `;
   }
 };
