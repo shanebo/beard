@@ -13,5 +13,5 @@ document.getElementById('demo').innerHTML = 'hello';
 </script>
 
 <script handle>
-console.log('runnimg');
+  const foo = 'boo';
 </script>
