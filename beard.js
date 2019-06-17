@@ -83,8 +83,9 @@ class Beard {
 }
 
 function validateSyntax(templateCode, tag, lineNumber, template) {
+  templateCode = templateCode.replace(/(\r\n|\n|\r)/gm, '');
   if (templateCode.match(/^.*\{[^\}]*$/)) templateCode += '}'; // append a } to templateCode that needs it
-  if (templateCode.match(/^\}/)) templateCode = 'if (false) {' + templateCode; // prepend a { to templateCode that needs it
+  if (templateCode.match(/^(\s*)\}/)) templateCode = 'if (false) {' + templateCode; // prepend a { to templateCode that needs it
 
   try {
     new Function(templateCode);
