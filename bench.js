@@ -1,12 +1,12 @@
 const { time } = require('brisky-performance');
-const beard = require('./beard');
+const beard = require('./lib/index');
 
 const benchmarkTemplate = function(name, path, engine, times = 10000) {
   let start;
   let elapsed;
 
-  console.log(name);
   console.log('--');
+  console.log(name);
 
   engine.render(path);
 
@@ -30,7 +30,7 @@ benchmarkTemplate(
   beard({
     templates: {
       '/page': "{{extends 'layout'}}page content{{block header}}the header{{endblock}}",
-      '/layout': 'top of page {{header}} -- {{view}} -- the footer'
+      '/layout': 'top of page {{header}} -- {{content}} -- the footer'
     }
   })
 );
