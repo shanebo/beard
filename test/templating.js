@@ -339,7 +339,7 @@ describe('Templating', function() {
       templates: {
         '/templates/view': `
           start
-          {{include '../header', content}}
+          {{include:content '../header'}}
             <h1>hello world</h1>
           {{endinclude}}
           end`,
@@ -354,7 +354,7 @@ describe('Templating', function() {
       templates: {
         '/templates/view': `
           start
-          {{include '../header', {title: 'The Title'}, content}}
+          {{include:content '../header', {title: 'The Title'}}}
             <h1>Hello World</h1>
           {{endinclude}}
           end`,
@@ -369,9 +369,9 @@ describe('Templating', function() {
       templates: {
         '/templates/view': `
           start
-          {{include '../header', {
+          {{include:content '../header', {
             header: 'Header'
-          }, content}}
+          }}}
             <h1>Header</h1>
           {{endinclude}}
           end`,
@@ -391,7 +391,7 @@ describe('Templating', function() {
           {{block nav}}
           main nav
           {{endblock}}
-          {{include '../header', content}}
+          {{include:content '../header'}}
             <h1>Header</h1>
           {{endinclude}}
           end`,
