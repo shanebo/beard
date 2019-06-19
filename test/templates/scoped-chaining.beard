@@ -1,0 +1,11 @@
+<h1><em>hello h1</em></h1>
+<h4><em>hello h4</em></h4>
+<div><em>hello div</em></div>
+
+<style scoped>
+  h1 em,
+  h4 em:first-of-type,
+  div em {
+    color: green;
+  }
+</style>

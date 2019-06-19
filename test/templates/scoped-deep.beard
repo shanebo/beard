@@ -1,0 +1,7 @@
+<h1><em>hello</em></h1>
+
+<style scoped>
+  h1 >>> em {
+    color: red;
+  }
+</style>
