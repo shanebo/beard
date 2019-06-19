@@ -1,75 +1,94 @@
-const { expect } = require('chai');
-const normalize = require('path').normalize;
-const fs = require('fs');
-
 const beard = require('../lib/index');
+const fs = require('fs');
+const chai = require('chai');
+const { assert, expect } = chai;
+chai.use(require('chai-string'));
+
+const read = (file) => fs.readFileSync(`${__dirname}/../.beard/${file}`, 'utf8').trim();
+const contents = (path, ext) => {
+  const files = fs.readdirSync(`${__dirname}/../.beard`);
+  const file = files.find(file => new RegExp(`${path}\.[^\.]+\.${ext}`).test(file));
+  return fs.readFileSync(`${__dirname}/../.beard/${file}`, 'utf8').trim().replace(/\s+/g, ' ');
+}
+
+const engine = beard({ root: __dirname });
+
+chai.use(function (chai, utils) {
+  const Assertion = chai.Assertion;
+
+  Assertion.addMethod('matchScoped', function (expected) {
+    const hashRegex = new RegExp(expected.replace(/\$b/gm, '(b\-[0-9a-fA-F]{6})'));
+    new Assertion(this._obj).to.match(hashRegex);
+  });
+});
+
+// const hashRegex = (actual, expected) => {
+//   const hashedExpected = expected.replace(/\$b/gm, '(b\-[0-9a-fA-F]{8})');
+//   assert(new RegExp(hashedExpected).test(actual), `Expected ${actual} to be ${expected}`);
+// }
+// chai.Assertion.addChainableMethod('matchHashedHTML', hashRegex, chainingBehavior);
+// expect(fooStr).to.be.foo('bar');
+// expect(fooStr).to.be.foo.equal('foo');
 
 describe('Bundling', function() {
-  let engine;
-
-  before(() => engine = beard({ root: __dirname }));
-
   it('extracts style blocks into scss asset files and imports them in the entry file', function() {
-    expect(engine.render('templates/simple').replace(/\s+/g, ' ')).to.not.include('body { color: blue; }');
-    const bundledCSS = fs.readFileSync(`${__dirname}/../.beard/simple.ed10418f.scss`, 'utf8').trim();
-    expect(bundledCSS.replace(/\s+/g, ' ')).to.equal('body { color: blue; }');
-    const entryCSS = fs.readFileSync(`${__dirname}/../.beard/entry.css`, 'utf8').trim();
-    expect(entryCSS).to.include("@import './simple.ed10418f.scss';");
+    expect(engine.render('templates/simple')).to.not.include('body { color: blue; }');
+    expect(contents('simple', 'scss')).to.equalIgnoreSpaces('body { color: blue; }');
+    expect(read('entry.css')).to.include("@import './simple.");
   });
 
   it('extracts frontend script blocks into js asset files and imports them in the entry file', function() {
     expect(engine.render('templates/simple')).to.not.include("document.getElementById('demo').innerHTML = 'hello';");
-    const bundledJS = fs.readFileSync(`${__dirname}/../.beard/simple.6b756e34.js`, 'utf8').trim();
-    expect(bundledJS).to.equal("document.getElementById('demo').innerHTML = 'hello';");
-    const entryCSS = fs.readFileSync(`${__dirname}/../.beard/entry.js`, 'utf8').trim();
-    expect(entryCSS).to.include("import './simple.6b756e34.js';");
+    expect(contents('simple', 'js')).to.equalIgnoreSpaces("document.getElementById('demo').innerHTML = 'hello';");
+    expect(read('entry.js')).to.include("import './simple.");
   });
 
   it('extracts the ssjs script block', function() {
-    engine.render('templates/simple');
-    const contents = fs.readFileSync(`${__dirname}/../.beard/simple.3deaf010.ssjs.js`, 'utf8').trim();
-    expect(contents.trim().replace(/\s+/g, ' ')).to.equal("const foo = 'boo';");
+    expect(contents('simple', 'ssjs.js')).to.equalIgnoreSpaces("const foo = 'boo';");
   });
 
   describe('when script or style block has bundle attribute', function() {
     it('creates a custom bundle entry file', function() {
-      engine.render('templates/named-bundle');
-      const entryCSS = fs.readFileSync(`${__dirname}/../.beard/alert.css`, 'utf8').trim();
-      expect(entryCSS).to.equal("@import './named-bundle.e6035d8f.scss';");
-      const entryJS = fs.readFileSync(`${__dirname}/../.beard/alert.js`, 'utf8').trim();
-      expect(entryJS).to.equal("import './named-bundle.03e83341.js';");
+      expect(read('alert.css')).to.includes("@import './named-bundle.");
+      expect(read('alert.js')).to.includes("import './named-bundle.");
     });
   });
 
   describe('when style block has lang attribute', function() {
     it('sets file extension on extracted block file', function() {
-      engine.render('templates/lang');
-      const bundledCSS = fs.readFileSync(`${__dirname}/../.beard/lang.28d75d5c.less`, 'utf8').trim();
-      expect(bundledCSS.replace(/\s+/g, ' ')).to.equal(`@color: blue; body { color: @color; }`);
+      expect(contents('lang', 'less')).to.equalIgnoreSpaces(`@color: blue; body { color: @color; }`);
     });
   });
 
   describe('when style block is scoped', function() {
     it('sets custom css class names on css styles and on html elements', function() {
-      expect(engine.render('templates/scoped')).to.equal('<body><span class="beard-3955489847">test</span></body>');
-      const contents = fs.readFileSync(`${__dirname}/../.beard/scoped.58f0173c.scss`, 'utf8').trim();
-      expect(contents.trim().replace(/\s+/g, ' ')).to.equal('.beard-3955489847 { color: green; }');
+      expect(engine.render('templates/scoped')).to.matchScoped('<body><span class="$b">test</span></body>');
+      expect(contents('scoped', 'scss')).to.matchScoped('span.$b { color: green; }');
     });
 
     it('does not set custom css class names on nested css styles', function() {
-      expect(engine.render('templates/scoped-nested')).to
-        .equal('<body> <span class="beard-2111845271">test</span> <h1 class="beard-1540222833">These tacos are <em>amazin</em>!</h1> </body>');
-      const contents = fs.readFileSync(`${__dirname}/../.beard/scoped-nested.de8d39b0.scss`, 'utf8').trim();
-      expect(contents.trim().replace(/\s+/g, ' ')).to
-        .equal('.beard-2111845271 { color: green; } .beard-1540222833 { color: blue; em { font-style: italic; } }');
+      expect(engine.render('templates/scoped-nested')).to.matchScoped('<body> <span class="$b">test</span> <h1 class="$b">These tacos are <em>amazin</em>!</h1> </body>');
+      expect(contents('scoped-nested', 'scss')).to.matchScoped('span.$b { color: green; } h1.$b { color: blue; em { font-style: italic; } }');
     });
 
     it('sets custom css class names on nested styles in media elements', function() {
-      expect(engine.render('templates/scoped-media-elements')).to
-        .equal('<body class="beard-2292564546"> <span class="beard-2168526814">test</span> </body>');
-      const contents = fs.readFileSync(`${__dirname}/../.beard/scoped-media-elements.7f3f6d01.scss`, 'utf8').trim();
-      expect(contents.trim().replace(/\s+/g, ' ')).to
-        .equal('@media screen {.beard-2292564546 { color: green; } .beard-2168526814 { color: green; }}');
+      expect(engine.render('templates/scoped-media-queries')).to.matchScoped('<body class="$b"> <span class="$b">test</span> </body>');
+      expect(contents('scoped-media-queries', 'scss')).to.matchScoped('@media screen {body.$b { color: green; } span.$b { color: green; }}');
+    });
+
+    it('sets custom css class names before deep selector', function() {
+      expect(engine.render('templates/scoped-deep')).to.matchScoped('<h1 class="$b"><em>hello</em></h1>');
+      expect(contents('scoped-deep', 'scss')).to.matchScoped('h1.$b em { color: red; }');
+    });
+
+    it('sets custom css class names on chained selectors', function() {
+      expect(engine.render('templates/scoped-chaining')).to.matchScoped('<h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b"><em class="$b">hello h4</em></h4> <div class="$b"><em class="$b">hello div</em></div>');
+      expect(contents('scoped-chaining', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:first-of-type, div.$b em.$b { color: green; }');
+    });
+
+    it('sets custom css class names selectors with pseudo elements', function() {
+      expect(engine.render('templates/scoped-pseudo-elements')).to.matchScoped('<div class="Text $b $b $b"> <p class="$b $b"><em>nacho</em> libre</p> <p>hello world</p> </div> <h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b $b"><em class="$b $b">hello h4</em></h4> <div class="Text"> <p>hello world</p> <p>nacho libre</p> </div>');
+      expect(contents('scoped-pseudo-elements', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:before { color: green; } h4.$b em.$b::before { color: green; } .Text.$b:first-child > p.$b:first-child :first-child { background-color: #ff3300; } .Text.$b:first-child > p.$b:first-child:first-letter { background-color: #ff3300; } { // color: green; // } .Text.$b:first-of-type { background-color: #aae; }');
     });
   });
 });

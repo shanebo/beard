@@ -1,0 +1,40 @@
+<div class="Text">
+  <p><em>nacho</em> libre</p>
+  <p>hello world</p>
+</div>
+
+<h1><em>hello h1</em></h1>
+<h4><em>hello h4</em></h4>
+
+<div class="Text">
+  <p>hello world</p>
+  <p>nacho libre</p>
+</div>
+
+
+<style scoped lang="scss">
+  h1 em,
+  h4 em:before {
+    color: green;
+  }
+
+  h4 em::before {
+    color: green;
+  }
+
+  .Text:first-child > p:first-child :first-child {
+    background-color: #ff3300;
+  }
+
+  .Text:first-child > p:first-child:first-letter {
+    background-color: #ff3300;
+  }
+
+  // h4 em::before {
+  //   color: green;
+  // }
+
+  .Text:first-of-type {
+    background-color: #aae;
+  }
+</style>
