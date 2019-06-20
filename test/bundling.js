@@ -68,5 +68,10 @@ describe('Bundling', function() {
       expect(engine.render('templates/scoped-chaining')).to.equalIgnoreSpaces('<h1 class="b-c60ed2bf"><em class="b-c60ed2bf">hello h1</em></h1> <h4 class="b-c60ed2bf"><em class="b-c60ed2bf">hello h4</em></h4> <div class="b-c60ed2bf"><em class="b-c60ed2bf">hello div</em></div>');
       expect(contents('scoped-chaining', 'scss')).to.equalIgnoreSpaces('h1.b-c60ed2bf em.b-c60ed2bf, h4.b-c60ed2bf em.b-c60ed2bf:first-of-type, div.b-c60ed2bf em.b-c60ed2bf { color: green; }');
     });
+
+    it('sets custom css class names selectors with pseudo elements', function() {
+      expect(engine.render('templates/scoped-pseudo-elements')).to.equalIgnoreSpaces('<h1 class="b-025a0994"><em class="b-025a0994">hello h1</em></h1> <h4 class="b-025a0994"><em class="b-025a0994">hello h4</em></h4>');
+      expect(contents('scoped-pseudo-elements', 'scss')).to.equalIgnoreSpaces('h1.b-025a0994 em.b-025a0994, h4.b-025a0994 em.b-025a0994::before { color: green; }');
+    });
   });
 });

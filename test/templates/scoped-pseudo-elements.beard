@@ -1,0 +1,9 @@
+<h1><em>hello h1</em></h1>
+<h4><em>hello h4</em></h4>
+
+<style scoped>
+  h1 em,
+  h4 em::before {
+    color: green;
+  }
+</style>
