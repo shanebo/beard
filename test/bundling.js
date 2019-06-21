@@ -60,13 +60,18 @@ describe('Bundling', function() {
     });
 
     it('sets custom css class names before deep selector', function() {
-      expect(engine.render('templates/scoped-deep')).to.equalIgnoreSpaces('<h1><em class="b-5343f3be">hello</em></h1>');
+      expect(engine.render('templates/scoped-deep')).to.equalIgnoreSpaces('<h1 class="b-5343f3be"><em>hello</em></h1>');
       expect(contents('scoped-deep', 'scss')).to.equalIgnoreSpaces('h1.b-5343f3be em { color: red; }');
     });
 
     it('sets custom css class names on chained selectors', function() {
-      expect(engine.render('templates/scoped-chaining')).to.equalIgnoreSpaces('<h1><em class="b-c60ed2bf">hello h1</em></h1> <h4><em class="b-c60ed2bf">hello h4</em></h4> <div><em class="b-c60ed2bf">hello div</em></div>');
+      expect(engine.render('templates/scoped-chaining')).to.equalIgnoreSpaces('<h1 class="b-c60ed2bf"><em class="b-c60ed2bf">hello h1</em></h1> <h4 class="b-c60ed2bf"><em class="b-c60ed2bf">hello h4</em></h4> <div class="b-c60ed2bf"><em class="b-c60ed2bf">hello div</em></div>');
       expect(contents('scoped-chaining', 'scss')).to.equalIgnoreSpaces('h1.b-c60ed2bf em.b-c60ed2bf, h4.b-c60ed2bf em.b-c60ed2bf:first-of-type, div.b-c60ed2bf em.b-c60ed2bf { color: green; }');
+    });
+
+    it('sets custom css class names selectors with pseudo elements', function() {
+      expect(engine.render('templates/scoped-pseudo-elements')).to.equalIgnoreSpaces('<h1 class="b-025a0994"><em class="b-025a0994">hello h1</em></h1> <h4 class="b-025a0994"><em class="b-025a0994">hello h4</em></h4>');
+      expect(contents('scoped-pseudo-elements', 'scss')).to.equalIgnoreSpaces('h1.b-025a0994 em.b-025a0994, h4.b-025a0994 em.b-025a0994::before { color: green; }');
     });
   });
 });
