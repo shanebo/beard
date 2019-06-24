@@ -12,7 +12,15 @@ const contents = (path, ext) => {
 }
 
 const engine = beard({ root: __dirname });
-const hashRegex = (str) => new RegExp(str.replace(/\$b/gm, '(b\-[0-9a-fA-F]{6})'));
+
+chai.use(function (chai, utils) {
+  const Assertion = chai.Assertion;
+
+  Assertion.addMethod('matchScoped', function (expected) {
+    const hashRegex = new RegExp(expected.replace(/\$b/gm, '(b\-[0-9a-fA-F]{6})'));
+    new Assertion(this._obj).to.match(hashRegex);
+  });
+});
 
 // const hashRegex = (actual, expected) => {
 //   const hashedExpected = expected.replace(/\$b/gm, '(b\-[0-9a-fA-F]{8})');
@@ -54,33 +62,33 @@ describe('Bundling', function() {
 
   describe('when style block is scoped', function() {
     it('sets custom css class names on css styles and on html elements', function() {
-      expect(engine.render('templates/scoped')).to.match(hashRegex('<body><span class="$b">test</span></body>'));
-      expect(contents('scoped', 'scss')).to.match(hashRegex('span.$b { color: green; }'));
+      expect(engine.render('templates/scoped')).to.matchScoped('<body><span class="$b">test</span></body>');
+      expect(contents('scoped', 'scss')).to.matchScoped('span.$b { color: green; }');
     });
 
     it('does not set custom css class names on nested css styles', function() {
-      expect(engine.render('templates/scoped-nested')).to.match(hashRegex('<body> <span class="$b">test</span> <h1 class="$b">These tacos are <em>amazin</em>!</h1> </body>'));
-      expect(contents('scoped-nested', 'scss')).to.match(hashRegex('span.$b { color: green; } h1.$b { color: blue; em { font-style: italic; } }'));
+      expect(engine.render('templates/scoped-nested')).to.matchScoped('<body> <span class="$b">test</span> <h1 class="$b">These tacos are <em>amazin</em>!</h1> </body>');
+      expect(contents('scoped-nested', 'scss')).to.matchScoped('span.$b { color: green; } h1.$b { color: blue; em { font-style: italic; } }');
     });
 
     it('sets custom css class names on nested styles in media elements', function() {
-      expect(engine.render('templates/scoped-media-queries')).to.match(hashRegex('<body class="$b"> <span class="$b">test</span> </body>'));
-      expect(contents('scoped-media-queries', 'scss')).to.match(hashRegex('@media screen {body.$b { color: green; } span.$b { color: green; }}'));
+      expect(engine.render('templates/scoped-media-queries')).to.matchScoped('<body class="$b"> <span class="$b">test</span> </body>');
+      expect(contents('scoped-media-queries', 'scss')).to.matchScoped('@media screen {body.$b { color: green; } span.$b { color: green; }}');
     });
 
     it('sets custom css class names before deep selector', function() {
-      expect(engine.render('templates/scoped-deep')).to.match(hashRegex('<h1 class="$b"><em>hello</em></h1>'));
-      expect(contents('scoped-deep', 'scss')).to.match(hashRegex('h1.$b em { color: red; }'));
+      expect(engine.render('templates/scoped-deep')).to.matchScoped('<h1 class="$b"><em>hello</em></h1>');
+      expect(contents('scoped-deep', 'scss')).to.matchScoped('h1.$b em { color: red; }');
     });
 
     it('sets custom css class names on chained selectors', function() {
-      expect(engine.render('templates/scoped-chaining')).to.match(hashRegex('<h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b"><em class="$b">hello h4</em></h4> <div class="$b"><em class="$b">hello div</em></div>'));
-      expect(contents('scoped-chaining', 'scss')).to.match(hashRegex('h1.$b em.$b, h4.$b em.$b:first-of-type, div.$b em.$b { color: green; }'));
+      expect(engine.render('templates/scoped-chaining')).to.matchScoped('<h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b"><em class="$b">hello h4</em></h4> <div class="$b"><em class="$b">hello div</em></div>');
+      expect(contents('scoped-chaining', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:first-of-type, div.$b em.$b { color: green; }');
     });
 
     it('sets custom css class names selectors with pseudo elements', function() {
-      expect(engine.render('templates/scoped-pseudo-elements')).to.match(hashRegex('<div class="Text $b $b $b"> <p class="$b $b"><em>nacho</em> libre</p> <p>hello world</p> </div> <h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b $b"><em class="$b $b">hello h4</em></h4> <div class="Text"> <p>hello world</p> <p>nacho libre</p> </div>'));
-      expect(contents('scoped-pseudo-elements', 'scss')).to.match(hashRegex('h1.$b em.$b, h4.$b em.$b:before { color: green; } h4.$b em.$b::before { color: green; } .Text.$b:first-child > p.$b:first-child :first-child { background-color: #ff3300; } .Text.$b:first-child > p.$b:first-child:first-letter { background-color: #ff3300; } { // color: green; // } .Text.$b:first-of-type { background-color: #aae; }'));
+      expect(engine.render('templates/scoped-pseudo-elements')).to.matchScoped('<div class="Text $b $b $b"> <p class="$b $b"><em>nacho</em> libre</p> <p>hello world</p> </div> <h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b $b"><em class="$b $b">hello h4</em></h4> <div class="Text"> <p>hello world</p> <p>nacho libre</p> </div>');
+      expect(contents('scoped-pseudo-elements', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:before { color: green; } h4.$b em.$b::before { color: green; } .Text.$b:first-child > p.$b:first-child :first-child { background-color: #ff3300; } .Text.$b:first-child > p.$b:first-child:first-letter { background-color: #ff3300; } { // color: green; // } .Text.$b:first-of-type { background-color: #aae; }');
     });
   });
 });
