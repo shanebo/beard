@@ -18,16 +18,15 @@ class Beard {
   constructor(opts = {}) {
     opts.templates = opts.templates || {};
     this.opts = opts;
-    this.fnCache = {};
-    this.pathMap = {};
+    this.fns = {};
+    this.handles = {};
 
     if (this.opts.root) {
-      const regex = new RegExp(`(^${this.opts.root}|.beard$)`, 'g');
+      const regex = new RegExp('(.beard$)', 'g');
       traversy(this.opts.root, exts, (path) => {
         const key = path.replace(regex, '');
         const body = fs.readFileSync(path, 'utf8');
         this.opts.templates[key] = cleanWhitespace(body);
-        this.pathMap[key] = path;
       });
     }
 
@@ -44,22 +43,22 @@ class Beard {
   }
 
   compiled(path, parentPath = '') {
-    path = resolvePath(path, parentPath);
-    const str = this.opts.templates[path];
+    path = resolvePath(path, parentPath, this.opts.root);
     const key = hash(path);
-    if (!this.fnCache[key]) this.fnCache[key] = compile(str, path);
-    return this.fnCache[key];
+    const str = this.opts.templates[path];
+    if (!this.fns[key]) this.fns[key] = compile(str, path);
+    return this.fns[key];
   }
 
   customTag(name, parentPath, path, data = {}) {
-    const resolvedPath = resolvePath(path, parentPath);
+    const resolvedPath = resolvePath(path, parentPath, this.opts.root);
     if (this.opts.customContentTags.hasOwnProperty(name)) return this.opts.customContentTags[name](resolvedPath, data);
     return this.opts.customTags[name](resolvedPath, data);
   }
 
   customContentTag(name, parentPath, path, data, content) {
     data.content = content;
-    const resolvedPath = resolvePath(path, parentPath);
+    const resolvedPath = resolvePath(path, parentPath, this.opts.root);
     return this.opts.customContentTags[name](resolvedPath, data);
   }
 
@@ -129,10 +128,12 @@ const exps = {
   endCustomTag:      (/^(?!)$/)
 };
 
-function resolvePath(path, parentPath) {
+function resolvePath(path, parentPath, root) {
   return path.startsWith('/')
     ? path
-    : normalize(`${getDir(parentPath)}/${path}`);
+    : path.startsWith('~')
+      ? resolve(root, path.replace(/^~/, '.'))
+      : normalize(`${getDir(parentPath)}/${path}`);
 }
 
 function hash(str) {
