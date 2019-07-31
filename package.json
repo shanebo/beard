@@ -17,6 +17,9 @@
   "scripts": {
     "test": "mocha"
   },
+  "bin": {
+    "beard": "./cli.js"
+  },
   "dependencies": {
     "cheerio": "github:cheeriojs/cheerio#3368605edb3c5babecc8576602a9d54ccfdaef1e",
     "fs-extra": "7.0.1",
