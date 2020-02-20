@@ -126,6 +126,60 @@ describe('Custom Tags', function() {
       to.equal(' top <h1>hello world</h1> the title component');
   });
 
+  it('handles custom tags with block content and inline blocks', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          top
+          {{component:content '../header'}}
+            {{block button}}
+               a button
+            {{endblock}}
+
+            {{block actions}}
+                some actions
+            {{endblock}}
+            <h1>hello world</h1>
+          {{endcomponent}}`,
+        '/header': '{{content}} {{button}} {{actions}} component'
+      },
+      customTags: {
+        component: {
+          render: (path, data) => engine.render(path, data),
+          firstArgIsResolvedPath: true,
+          content: true
+        }
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
+      to.equal(' top <h1>hello world</h1> a button some actions component');
+  });
+
+  it('handles custom tags with block content, inline blocks and data', function() {
+    const engine = beard({
+      templates: {
+        '/templates/view': `
+          top
+          {{component:content '../header', { button: 'data button' }}}
+            {{block actions}}
+                some actions
+            {{endblock}}
+            <h1>hello world</h1>
+          {{endcomponent}}`,
+        '/header': '{{content}} {{button}} {{actions}} component'
+      },
+      customTags: {
+        component: {
+          render: (path, data) => engine.render(path, data),
+          firstArgIsResolvedPath: true,
+          content: true
+        }
+      }
+    });
+    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
+      to.equal(' top <h1>hello world</h1> data button some actions component');
+  });
+
   it('handles custom tags with block content, data and subcomponents', function() {
     const engine = beard({
       templates: {
