@@ -171,6 +171,22 @@ describe('Templating', function() {
       to.equal('people = Charles Spurgeon! John Calvin! ');
   });
 
+  it('handles each loops with maps', function() {
+    const engine = beard({
+      templates: {
+        '/view': `
+        {{each person in people.map((n) => {
+          return n.toUpperCase();
+          })}}
+          {{person}}
+        {{end}}
+        `
+      }
+    });
+    const people = ['charles', 'john'];
+    expect(engine.render('view', {people: people})).to.equal('  CHARLES  JOHN  ');
+  });
+
   it('handles each loops with embedded values', function() {
     const engine = beard({
       templates: {
