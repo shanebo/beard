@@ -129,19 +129,28 @@ describe('Templating', function() {
       to.equal('names =  Bill John Dave');
   });
 
-  it('handles for loops with embedded values', function() {
-      const engine = beard({ templates: {
-        '/loops': `
-        {{for name, index in ['Charles', 'John', 'Martin']}}
-          {{index}} - {{name}}
-        {{end}}
+  it('handles for loops', function() {
+    const engine = beard({ templates: {
+      '/with-index': 'names = {{for name, index in names}} {{name}} - {{index}}{{end}}',
+      '/no-index': 'names = {{for name in names}} {{name}}{{end}}'
+    }});
+    expect(engine.render('with-index', {names: ['Bill', 'John', 'Dave']})).
+      to.equal('names =  Bill - 0 John - 1 Dave - 2');
+    expect(engine.render('no-index', {names: ['Bill', 'John', 'Dave']})).
+      to.equal('names =  Bill John Dave');
+  });
 
-        {{for sort in [{label: 'Up', val: 'asc'}, {label: 'Down', val: 'desc'}]}}
-          {{sort.label}} - {{sort.val}}
+  it('handles multiline for blocks with functions', function() {
+      const engine = beard({ templates: {
+        '/view': `
+        {{for name in ['charles', 'john', 'martin'].map((n) => {
+          return n.toUpperCase();
+          })}}
+          {{name}}
         {{end}}
         `
       }});
-      expect(engine.render('/loops').trim()).to.equal('0 - Charles  1 - John  2 - Martin   Up - asc  Down - desc');
+      expect(engine.render('view').trim()).to.equal('CHARLES  JOHN  MARTIN');
   });
 
   it('handles each loops', function() {
@@ -169,6 +178,22 @@ describe('Templating', function() {
       to.equal('people = 0 - Charles Spurgeon! 1 - John Calvin! ');
     expect(engine.render('no-index', {people: people})).
       to.equal('people = Charles Spurgeon! John Calvin! ');
+  });
+
+  it('handles each loops with maps', function() {
+    const engine = beard({
+      templates: {
+        '/view': `
+        {{each person in people.map((n) => {
+          return n.toUpperCase();
+          })}}
+          {{person}}
+        {{end}}
+        `
+      }
+    });
+    const people = ['charles', 'john'];
+    expect(engine.render('view', {people: people})).to.equal('  CHARLES  JOHN  ');
   });
 
   it('handles each loops with embedded values', function() {
