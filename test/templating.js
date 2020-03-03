@@ -216,6 +216,27 @@ describe('Templating', function() {
     expect(engine.render('with', {navigation: 'none'})).to.include('no nav');
   });
 
+  it('handles conditionals with functions', function() {
+    const engine = beard({
+      templates: {
+        '/view': `
+          {{if ['FULL', 'PARTIAL'].map((s) => {
+            return s.toLowerCase();
+          }).includes(navigation)}}
+            full navigation
+          {{else if ['OPTION'].map((s) => {
+            return s.toLowerCase();
+          }).includes(navigation)}}
+            option navigation
+          {{end}}
+        `
+      }
+    });
+    expect(engine.render('view', {navigation: 'full'})).to.include('full navigation');
+    expect(engine.render('view', {navigation: 'option'})).to.include('option navigation');
+    expect(engine.render('view', {navigation: 'none'})).to.equal('  ');
+  });
+
   it('handles strings', function() {
     const engine = beard({
       templates: {
