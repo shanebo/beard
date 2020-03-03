@@ -1,6 +1,8 @@
+<template>
 <body>
 simple
 </body>
+</template>
 
 <style>
 body {

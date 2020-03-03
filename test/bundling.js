@@ -31,6 +31,10 @@ chai.use(function (chai, utils) {
 // expect(fooStr).to.be.foo.equal('foo');
 
 describe('Bundling', function() {
+  it('renders a simple bundled file', function() {
+    expect(engine.render('templates/simple')).to.equal('<body> simple </body>');
+  });
+
   it('extracts style blocks into scss asset files and imports them in the entry file', function() {
     expect(engine.render('templates/simple')).to.not.include('body { color: blue; }');
     expect(contents('simple', 'scss')).to.equalIgnoreSpaces('body { color: blue; }');
