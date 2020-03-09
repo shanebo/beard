@@ -150,7 +150,7 @@ describe('Templating', function() {
         {{end}}
         `
       }});
-      expect(engine.render('view').trim()).to.equal('CHARLES  JOHN  MARTIN');
+      expect(engine.render('view').replace(/\s+/gm, ' ').trim()).to.equal('CHARLES JOHN MARTIN');
   });
 
   it('handles each loops', function() {
@@ -193,7 +193,7 @@ describe('Templating', function() {
       }
     });
     const people = ['charles', 'john'];
-    expect(engine.render('view', {people: people})).to.equal('  CHARLES  JOHN  ');
+    expect(engine.render('view', {people: people}).replace(/\s+/gm, ' ').trim()).to.equal('CHARLES JOHN');
   });
 
   it('handles each loops with embedded values', function() {
@@ -210,7 +210,7 @@ describe('Templating', function() {
         `
       }
     });
-    expect(engine.render('/loops').trim()).to.equal('Up - asc  Down - desc   Uno  Dos  Tres');
+    expect(engine.render('/loops').replace(/\s+/gm, ' ').trim()).to.equal('Up - asc Down - desc Uno Dos Tres');
   });
 
   it('handles conditionals', function() {
@@ -259,7 +259,7 @@ describe('Templating', function() {
     });
     expect(engine.render('view', {navigation: 'full'})).to.include('full navigation');
     expect(engine.render('view', {navigation: 'option'})).to.include('option navigation');
-    expect(engine.render('view', {navigation: 'none'})).to.equal('  ');
+    expect(engine.render('view', {navigation: 'none'}).trim()).to.equal('');
   });
 
   it('handles strings', function() {
@@ -493,7 +493,7 @@ describe('Templating', function() {
           console.log(obj);
         }
         </script>
-      `.replace(/\s+/g, ' '));
+      `);
   });
 
   it('handles nested template data', function() {

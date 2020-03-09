@@ -6,6 +6,6 @@ describe('File System', function() {
     const engine = beard({
       root: __dirname
     });
-    expect(engine.render('templates/view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer');
+    expect(engine.render('templates/view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer ');
   });
 });
