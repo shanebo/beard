@@ -1,0 +1,14 @@
+<template>
+<body>
+  <div>
+    <pre> some  pre-formatted     content</pre>
+    <pre> other      content</pre>
+    <code>   some    code   </code>
+    <div>
+      <textarea>some other  in put that    is text
+            some text
+      </textarea>
+    <span>some    spanned   content</span>
+  </div>
+</body>
+</template>
