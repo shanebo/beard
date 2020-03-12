@@ -1,0 +1,5 @@
+<div>content</div>
+
+<script inline>
+alert('inline js');
+</script>

@@ -58,9 +58,25 @@ describe('Bundling', function() {
     });
   });
 
+  describe('when script or style block has multiple bundle values in the bundle attribute', function() {
+    it('creates a custom bundle entry file', function() {
+      expect(read('alert.css')).to.includes("@import './multiple-bundles.");
+      expect(read('info.css')).to.includes("@import './multiple-bundles.");
+      expect(read('alert.js')).to.includes("import './multiple-bundles.");
+      expect(read('main.js')).to.includes("import './multiple-bundles.");
+    });
+  });
+
   describe('when style block has lang attribute', function() {
     it('sets file extension on extracted block file', function() {
       expect(contents('lang', 'less')).to.equalIgnoreSpaces(`@color: blue; body { color: @color; }`);
+    });
+  });
+
+  describe('when script block has inline attribute', function() {
+    it('leaves the script tag in the template', function() {
+      expect(engine.render('templates/inline-js')).to.
+        equalIgnoreSpaces("<div>content</div> <script inline> alert('inline js'); </script>");
     });
   });
 
