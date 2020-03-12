@@ -1,0 +1,11 @@
+view
+
+<style bundle="alert,info">
+p {
+  color: red;
+}
+</style>
+
+<script bundle="alert,main">
+document.getElementsByClassName('alert')[0].innerHTML = 'alert';
+</script>
