@@ -64,6 +64,13 @@ describe('Bundling', function() {
     });
   });
 
+  describe('when script block has inline attribute', function() {
+    it('leaves the script tag in the template', function() {
+      expect(engine.render('templates/inline-js')).to.
+        equalIgnoreSpaces("<div>content</div> <script inline> alert('inline js'); </script>");
+    });
+  });
+
   describe('when style block is scoped', function() {
     it('sets custom css class names on css styles and on html elements', function() {
       expect(engine.render('templates/scoped')).to.matchScoped('<body><span class="$b">test</span></body>');
