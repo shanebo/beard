@@ -1,0 +1,15 @@
+<span class="foo">test</span>
+
+<style scoped>
+  /* .foo {
+    color: red;
+  } */
+
+  // .foo {
+  //   color: green;
+  // }
+
+  .foo {
+    color: blue;
+  }
+</style>

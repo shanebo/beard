@@ -108,7 +108,11 @@ describe('Bundling', function() {
 
     it('sets custom css class names selectors with pseudo elements', function() {
       expect(engine.render('templates/scoped-pseudo-elements')).to.matchScoped('<div class="Text $b"> <p class="$b"><em>nacho</em> libre</p> <p>hello world</p> </div> <h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b"><em class="$b">hello h4</em></h4> <div class="Text"> <p>hello world</p> <p>nacho libre</p> </div>');
-      expect(contents('scoped-pseudo-elements', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:before { color: green; } h4.$b em.$b::before { color: green; } .Text.$b:first-child > p.$b:first-child :first-child { background-color: #ff3300; } .Text.$b:first-child > p.$b:first-child:first-letter { background-color: #ff3300; } { // color: green; // } .Text.$b:first-of-type { background-color: #aae; }');
+      expect(contents('scoped-pseudo-elements', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:before { color: green; } h4.$b em.$b::before { color: green; } .Text.$b:first-child > p.$b:first-child :first-child { background-color: #ff3300; } .Text.$b:first-child > p.$b:first-child:first-letter { background-color: #ff3300; } .Text.$b:first-of-type { background-color: #aae; }');
+    });
+
+    it('ignores commented styles', function() {
+      expect(contents('commented-styles', 'scss')).to.matchScoped('.foo.$b { color: blue; }');
     });
   });
 });
