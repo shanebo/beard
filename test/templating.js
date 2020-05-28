@@ -667,5 +667,15 @@ describe('Templating', function() {
 
       expect(engine.render('content')).to.equal('<textarea>content</textarea>');
     });
+
+    it('renders content captures as the text value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag:content 'textarea'}}some content{{endtag}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea>some content</textarea>');
+    });
   });
 });
