@@ -24,10 +24,10 @@ describe('Custom Tags', function() {
   it('allows custom tags that do not process the first arg as a path', function() {
     const engine = beard({
       templates: {
-        '/view': `{{tag 'a', {href: 'www.google.com', link: 'google'}}}`
+        '/view': `{{beardTag 'a', {href: 'www.google.com', link: 'google'}}}`
       },
       customTags: {
-        tag: {
+        beardTag: {
           render: (tagName, data) => `<${tagName} href="${data.href}">${data.link}</${tagName}>`,
           firstArgIsResolvedPath: false,
           content: false

@@ -26,7 +26,8 @@
     "mismatch": "^1.2.0",
     "traversy": "0.0.2",
     "xregexp": "4.2.4",
-    "normalize-selector": "0.2.0"
+    "normalize-selector": "0.2.0",
+    "merge-anything": "~3.0.3"
   },
   "devDependencies": {
     "mocha": "4.1.0",
