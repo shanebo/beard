@@ -596,4 +596,86 @@ describe('Templating', function() {
     });
     expect(engine.render('comments')).to.equal('some content');
   });
+
+  describe('tag helper', function() {
+    it('renders a singleton tag', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'br'}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<br>');
+    });
+
+    it('renders a tag with attributes', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'text'}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<input type="text">');
+    });
+
+    it('renders true attributes without a value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'checkbox', checked: true}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<input type="checkbox" checked>');
+    });
+
+    it('does not render false or null values', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'checkbox', checked: false, selected: null}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<input type="checkbox">');
+    });
+
+    it('renders tags with value attributes', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'text', value: 'john'}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<input type="text" value="john">');
+    });
+
+    it('renders non-singleton tags with a closing tag', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'textarea'}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea></textarea>');
+    });
+
+    it('renders non-singleton tags with text value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'textarea', {content: 'content'}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea>content</textarea>');
+    });
+
+    it('renders content captures as the text value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag:content 'textarea'}}some content{{endtag}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea>some content</textarea>');
+    });
+  });
 });

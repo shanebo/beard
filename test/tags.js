@@ -4,13 +4,13 @@ const fs = require('fs');
 
 const beard = require('../lib/index');
 
-describe('Custom Tags', function() {
-  it('allows custom tags to be set', function() {
+describe('Tags', function() {
+  it('allows tags to be set', function() {
     const engine = beard({
       templates: {
         '/views/content': `{{asset '../images/calvin.png'}}`,
       },
-      customTags: {
+      tags: {
         asset: {
           render: (path) => `/dist${path}`,
           firstArgIsResolvedPath: true,
@@ -21,13 +21,13 @@ describe('Custom Tags', function() {
     expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
   });
 
-  it('allows custom tags that do not process the first arg as a path', function() {
+  it('allows tags that do not process the first arg as a path', function() {
     const engine = beard({
       templates: {
-        '/view': `{{tag 'a', {href: 'www.google.com', link: 'google'}}}`
+        '/view': `{{beardTag 'a', {href: 'www.google.com', link: 'google'}}}`
       },
-      customTags: {
-        tag: {
+      tags: {
+        beardTag: {
           render: (tagName, data) => `<${tagName} href="${data.href}">${data.link}</${tagName}>`,
           firstArgIsResolvedPath: false,
           content: false
@@ -37,13 +37,13 @@ describe('Custom Tags', function() {
     expect(engine.render('/view').replace(/\s+/g, ' ')).to.equal('<a href="www.google.com">google</a>');
   });
 
-  it('allows custom tags with data', function() {
+  it('allows tags with data', function() {
     const engine = beard({
       templates: {
         '/view': `{{asset '/calvin.png'}} page {{component 'simple', {title: 'Foo'}}}`,
         '/components/simple': '{{title}} component'
       },
-      customTags: {
+      tags: {
         asset: {
           render: (path) => `/dist${path}`,
           firstArgIsResolvedPath: true,
@@ -59,14 +59,14 @@ describe('Custom Tags', function() {
     expect(engine.render('view')).to.equal('/dist/calvin.png page Foo component');
   });
 
-  it('allows custom tags with dynamic paths', function() {
+  it('allows tags with dynamic paths', function() {
     const engine = beard({
       templates: {
         '/view': "{{asset assetName}} page {{component `/components/${componentName}`, {title: 'Foo'}}} {{component other.replace('_', '-'), {name: 'Foo Bar'}}}",
         '/components/simple': '{{title}} component',
         '/foo-bar': 'The {{name}}'
       },
-      customTags: {
+      tags: {
         asset: {
           render: (path) => `/dist${path}`,
           firstArgIsResolvedPath: true,
@@ -83,7 +83,7 @@ describe('Custom Tags', function() {
       .to.equal('/dist/calvin.png page Foo component The Foo Bar');
   });
 
-  it('handles custom tags with block content', function() {
+  it('handles tags with block content', function() {
     const engine = beard({
       templates: {
         '/templates/view': `
@@ -93,7 +93,7 @@ describe('Custom Tags', function() {
           {{endcomponent}}`,
         '/header': '{{content}} component'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -104,7 +104,7 @@ describe('Custom Tags', function() {
     expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' top <h1>hello world</h1> component');
   });
 
-  it('handles custom tags with block content and data', function() {
+  it('handles tags with block content and data', function() {
     const engine = beard({
       templates: {
         '/templates/view': `
@@ -114,7 +114,7 @@ describe('Custom Tags', function() {
           {{endcomponent}}`,
         '/header': '{{content}} {{title}} component'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -126,7 +126,7 @@ describe('Custom Tags', function() {
       to.equal(' top <h1>hello world</h1> the title component');
   });
 
-  it('handles custom tags with block content and inline blocks', function() {
+  it('handles tags with block content and inline blocks', function() {
     const engine = beard({
       templates: {
         '/templates/view': `
@@ -143,7 +143,7 @@ describe('Custom Tags', function() {
           {{endcomponent}}`,
         '/header': '{{content}} {{button}} {{actions}} component'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -155,7 +155,7 @@ describe('Custom Tags', function() {
       to.equal(' top <h1>hello world</h1> a button some actions component');
   });
 
-  it('handles custom tags with block content, inline blocks and data', function() {
+  it('handles tags with block content, inline blocks and data', function() {
     const engine = beard({
       templates: {
         '/templates/view': `
@@ -168,7 +168,7 @@ describe('Custom Tags', function() {
           {{endcomponent}}`,
         '/header': '{{content}} {{button}} {{actions}} component'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -180,7 +180,7 @@ describe('Custom Tags', function() {
       to.equal(' top <h1>hello world</h1> data button some actions component');
   });
 
-  it('handles custom tags with block content, data and subcomponents', function() {
+  it('handles tags with block content, data and subcomponents', function() {
     const engine = beard({
       templates: {
         '/templates/view': `
@@ -195,7 +195,7 @@ describe('Custom Tags', function() {
         '/header': '{{content}} {{title}} component',
         '/sub': 'the sub!'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -207,7 +207,7 @@ describe('Custom Tags', function() {
       to.equal(' top <h1>hello world</h1> the sub! the title component');
   });
 
-  it('handles custom tags with block content and extended layouts', function() {
+  it('handles tags with block content and extended layouts', function() {
     const engine = beard({
       templates: {
         '/templates/view': `
@@ -220,7 +220,7 @@ describe('Custom Tags', function() {
         '/header': '{{content}} component',
         '/layout': 'begin {{nav}} {{content}} end'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
