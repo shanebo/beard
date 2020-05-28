@@ -5,12 +5,12 @@ const fs = require('fs');
 const beard = require('../lib/index');
 
 describe('Shortcuts', function() {
-  it('allows shortcuts to be set for custom tags', function() {
+  it('allows shortcuts to be set for tags', function() {
     const engine = beard({
       templates: {
         '/views/content': `{{@logo}}`,
       },
-      customTags: {
+      tags: {
         asset: {
           render: (path) => `/dist${path}`,
           firstArgIsResolvedPath: true,
@@ -33,7 +33,7 @@ describe('Shortcuts', function() {
         '/views/content': `{{@header {title: 'Welcome To The'}}}`,
         '/header': '{{title}} component'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -60,7 +60,7 @@ describe('Shortcuts', function() {
           {{endheader}}`,
         '/header': '{{title}} {{content}}'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -95,7 +95,7 @@ describe('Shortcuts', function() {
           {{endheader}}`,
         '/header': '{{content}} {{button}} {{actions}} component'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -126,7 +126,7 @@ describe('Shortcuts', function() {
           {{endheader}}`,
         '/header': '{{content}} {{button}} {{actions}} component'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
@@ -154,7 +154,7 @@ describe('Shortcuts', function() {
           {{endpage.info}}`,
         '/components/info': '{{title}} {{content}}'
       },
-      customTags: {
+      tags: {
         component: {
           render: (path, data) => engine.render(path, data),
           firstArgIsResolvedPath: true,
