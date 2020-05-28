@@ -658,7 +658,7 @@ describe('Templating', function() {
       expect(engine.render('content')).to.equal('<textarea></textarea>');
     });
 
-    it('renders non-singleton tags with text value', () => {
+    it('renders non-singleton tags with text content', () => {
       const engine = beard({
         templates: {
           '/content': `{{tag 'textarea', {content: 'content'}}}`,
@@ -666,6 +666,16 @@ describe('Templating', function() {
       });
 
       expect(engine.render('content')).to.equal('<textarea>content</textarea>');
+    });
+
+    it('renders tags with text value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'textarea', {value: 'value'}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea>value</textarea>');
     });
 
     it('renders content captures as the text value', () => {
