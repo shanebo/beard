@@ -1,10 +1,6 @@
 <span class="foo">test</span>
 
 <style scoped>
-  /* .foo {
-    color: red;
-  } */
-
   // .foo {
   //   color: green;
   // }
@@ -12,4 +8,31 @@
   .foo {
     color: blue;
   }
+
+  /* .foo {
+    color: red;
+  } */
+
+  .header {
+    /* color: green;
+       size: 15px; */
+    color: red;
+  }
+
+  // .content {
+  //   color: orange;
+  //   /* color: green */
+  //   size: 15px;
+  // }
+
+  .content {
+    color: orange;
+    // color: green;
+    size: 15px;
+  }
+  
+  /* .foo {
+    color: red;
+    // size: 15px;
+  } */
 </style>

@@ -112,7 +112,8 @@ describe('Bundling', function() {
     });
 
     it('ignores commented styles', function() {
-      expect(contents('commented-styles', 'scss')).to.matchScoped('.foo.$b { color: blue; }');
+      expect(contents('commented-styles', 'scss')).to
+        .matchScoped('.foo.$b { color: blue; } .header.$b { color: red; } .content.$b { color: orange; // color: green; size: 15px; }');
     });
   });
 });
