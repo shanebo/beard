@@ -561,6 +561,15 @@ describe('Templating', function() {
     expect(engine.render('content')).to.equal('jack does not exist');
   });
 
+  it('checks if var does not exist', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{existsNot jack}}jack does not exist{{else}}jack does exist{{end}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal('jack does not exist');
+  });
+
   it('checks if assigned var exists', function() {
     const engine = beard({
       templates: {
