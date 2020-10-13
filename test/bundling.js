@@ -69,7 +69,7 @@ describe('Bundling', function() {
 
   describe('when style block has lang attribute', function() {
     it('sets file extension on extracted block file', function() {
-      expect(contents('lang', 'less')).to.equalIgnoreSpaces(`@color: blue; body { color: @color; }`);
+      expect(contents('lang', 'pcss')).to.equalIgnoreSpaces(`body { color: blue; }`);
     });
   });
 
@@ -113,7 +113,7 @@ describe('Bundling', function() {
 
     it('ignores commented styles', function() {
       expect(contents('commented-styles', 'scss')).to
-        .matchScoped('.foo.$b { color: blue; } .header.$b { color: red; } .content.$b { color: orange; // color: green; size: 15px; }');
+        .matchScoped('.foo { color: blue; } .header { color: red; } .content { color: orange; size: 15px; }');
     });
   });
 });

@@ -2,10 +2,8 @@
 simple
 </body>
 
-<style lang="less">
-@color: blue;
-
-body {
-  color: @color;
-}
+<style lang="pcss">
+  body {
+    color: blue;
+  }
 </style>
