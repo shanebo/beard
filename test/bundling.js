@@ -91,6 +91,10 @@ describe('Bundling', function() {
       expect(contents('scoped-nested', 'scss')).to.matchScoped('span.$b { color: green; } h1.$b { color: blue; em { font-style: italic; } }');
     });
 
+    it('handles regular media elements', function() {
+      expect(contents('media-queries', 'scss')).to.matchScoped('@page { color: green; font-size: 14px; }');
+    });
+
     it('sets custom css class names on nested styles in media elements', function() {
       expect(engine.render('templates/scoped-media-queries')).to.matchScoped('<body class="$b"> <span class="$b">test</span> </body>');
       expect(contents('scoped-media-queries', 'scss')).to.matchScoped('@media screen {body.$b { color: green; } span.$b { color: green; }}');

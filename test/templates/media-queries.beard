@@ -1,0 +1,10 @@
+<body>
+  <span>test</span>
+</body>
+
+<style>
+@page {
+  color: green;
+  font-size: 14px;
+}
+</style>
