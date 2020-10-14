@@ -1,6 +1,13 @@
 <span class="foo">test</span>
 
-<style>
+<style lang="scss">
+  .Major {
+    padding-bottom: var(--space-xxl);
+    // padding-left: var(--space-xxl);
+    // padding-right: var(--space-xxl);
+    background-color: var(--major-color);
+  }
+
   // .foo {
   //   color: green;
   // }

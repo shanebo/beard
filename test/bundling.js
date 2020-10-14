@@ -113,7 +113,7 @@ describe('Bundling', function() {
 
     it('ignores commented styles', function() {
       expect(contents('commented-styles', 'scss')).to
-        .matchScoped('.foo { color: blue; } .header { color: red; } .content { color: orange; size: 15px; }');
+        .eq('.Major { padding-bottom: var(--space-xxl); background-color: var(--major-color); } .foo { color: blue; } .header { color: red; } .content { color: orange; size: 15px; }');
     });
   });
 });
