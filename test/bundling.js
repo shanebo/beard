@@ -67,12 +67,6 @@ describe('Bundling', function() {
     });
   });
 
-  describe('when style block has lang attribute', function() {
-    it('sets file extension on extracted block file', function() {
-      expect(contents('lang', 'pcss')).to.equalIgnoreSpaces(`body { color: blue; }`);
-    });
-  });
-
   describe('when script block has inline attribute', function() {
     it('leaves the script tag in the template', function() {
       expect(engine.render('templates/inline-js')).to.
