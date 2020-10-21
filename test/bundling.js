@@ -37,7 +37,7 @@ describe('Bundling', function() {
 
   it('extracts style blocks into scss asset files and imports them in the entry file', function() {
     expect(engine.render('templates/simple')).to.not.include('body { color: blue; }');
-    expect(contents('simple', 'scss')).to.equalIgnoreSpaces('body { color: blue; }');
+    expect(contents('simple', 'css')).to.equalIgnoreSpaces('body { color: blue; }');
     expect(read('entry.css')).to.include("@import './simple.");
   });
 
@@ -67,12 +67,6 @@ describe('Bundling', function() {
     });
   });
 
-  describe('when style block has lang attribute', function() {
-    it('sets file extension on extracted block file', function() {
-      expect(contents('lang', 'pcss')).to.equalIgnoreSpaces(`body { color: blue; }`);
-    });
-  });
-
   describe('when script block has inline attribute', function() {
     it('leaves the script tag in the template', function() {
       expect(engine.render('templates/inline-js')).to.
@@ -83,40 +77,40 @@ describe('Bundling', function() {
   describe('when style block is scoped', function() {
     it('sets custom css class names on css styles and on html elements', function() {
       expect(engine.render('templates/scoped')).to.matchScoped('<body><span class="$b">test</span></body>');
-      expect(contents('scoped', 'scss')).to.matchScoped('span.$b { color: green; }');
+      expect(contents('scoped', 'css')).to.matchScoped('span.$b { color: green; }');
     });
 
     it('does not set custom css class names on nested css styles', function() {
       expect(engine.render('templates/scoped-nested')).to.matchScoped('<body> <span class="$b">test</span> <h1 class="$b">These tacos are <em>amazin</em>!</h1> </body>');
-      expect(contents('scoped-nested', 'scss')).to.matchScoped('span.$b { color: green; } h1.$b { color: blue; em { font-style: italic; } }');
+      expect(contents('scoped-nested', 'css')).to.matchScoped('span.$b { color: green; } h1.$b { color: blue; em { font-style: italic; } }');
     });
 
     it('handles regular media elements', function() {
-      expect(contents('media-queries', 'scss')).to.matchScoped('@page { color: green; font-size: 14px; }');
+      expect(contents('media-queries', 'css')).to.matchScoped('@page { color: green; font-size: 14px; }');
     });
 
     it('sets custom css class names on nested styles in media elements', function() {
       expect(engine.render('templates/scoped-media-queries')).to.matchScoped('<body class="$b"> <span class="$b">test</span> </body>');
-      expect(contents('scoped-media-queries', 'scss')).to.matchScoped('@media screen {body.$b { color: green; } span.$b { color: green; }}');
+      expect(contents('scoped-media-queries', 'css')).to.matchScoped('@media screen {body.$b { color: green; } span.$b { color: green; }}');
     });
 
     it('sets custom css class names before deep selector', function() {
       expect(engine.render('templates/scoped-deep')).to.matchScoped('<h1 class="$b"><em>hello</em></h1>');
-      expect(contents('scoped-deep', 'scss')).to.matchScoped('h1.$b em { color: red; }');
+      expect(contents('scoped-deep', 'css')).to.matchScoped('h1.$b em { color: red; }');
     });
 
     it('sets custom css class names on chained selectors', function() {
       expect(engine.render('templates/scoped-chaining')).to.matchScoped('<h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b"><em class="$b">hello h4</em></h4> <div class="$b"><em class="$b">hello div</em></div>');
-      expect(contents('scoped-chaining', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:first-of-type, div.$b em.$b { color: green; }');
+      expect(contents('scoped-chaining', 'css')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:first-of-type, div.$b em.$b { color: green; }');
     });
 
     it('sets custom css class names selectors with pseudo elements', function() {
       expect(engine.render('templates/scoped-pseudo-elements')).to.matchScoped('<div class="Text $b"> <p class="$b"><em>nacho</em> libre</p> <p>hello world</p> </div> <h1 class="$b"><em class="$b">hello h1</em></h1> <h4 class="$b"><em class="$b">hello h4</em></h4> <div class="Text"> <p>hello world</p> <p>nacho libre</p> </div>');
-      expect(contents('scoped-pseudo-elements', 'scss')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:before { color: green; } h4.$b em.$b::before { color: green; } .Text.$b:first-child > p.$b:first-child :first-child { background-color: #ff3300; } .Text.$b:first-child > p.$b:first-child:first-letter { background-color: #ff3300; } .Text.$b:first-of-type { background-color: #aae; }');
+      expect(contents('scoped-pseudo-elements', 'css')).to.matchScoped('h1.$b em.$b, h4.$b em.$b:before { color: green; } h4.$b em.$b::before { color: green; } .Text.$b:first-child > p.$b:first-child :first-child { background-color: #ff3300; } .Text.$b:first-child > p.$b:first-child:first-letter { background-color: #ff3300; } .Text.$b:first-of-type { background-color: #aae; }');
     });
 
     it('ignores commented styles', function() {
-      expect(contents('commented-styles', 'scss')).to
+      expect(contents('commented-styles', 'css')).to
         .eq('.Major { padding-bottom: var(--space-xxl); background-color: var(--major-color); } .foo { color: blue; } .header { color: red; } .content { color: orange; size: 15px; }');
     });
   });
