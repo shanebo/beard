@@ -1,0 +1,7 @@
+<div>content</div>
+
+<style inline>
+  h1 {
+    color: red;
+  }
+</style>

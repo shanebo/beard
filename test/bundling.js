@@ -74,6 +74,13 @@ describe('Bundling', function() {
     });
   });
 
+  describe('when style block has inline attribute', function() {
+    it('leaves the style tag in the template', function() {
+      expect(engine.render('templates/inline-css')).to.
+        equalIgnoreSpaces("<div>content</div> <style inline> h1 { color: red; } </style>");
+    });
+  });
+
   describe('when style block is scoped', function() {
     it('sets custom css class names on css styles and on html elements', function() {
       expect(engine.render('templates/scoped')).to.matchScoped('<body><span class="$b">test</span></body>');
