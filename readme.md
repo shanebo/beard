@@ -20,8 +20,8 @@ const data = {
   capitalize: str => str.charAt(0).toUpperCase() + str.slice(1)
 };
 
-const Beard = require('beard');
-const engine = new Beard({
+const beard = require('beard');
+const engine = beard({
   templates: {
     '/example': '{{capitalize(noun)}} are itchy.'
   }
@@ -49,8 +49,8 @@ console.log(result); // returns 'Beards are itchy.'
 ## Examples
 
 ``` js
-const Beard = require('beard');
-const engine = new Beard({
+const beard = require('beard');
+const engine = beard({
   templates: {
     '/layout': 'header | {{view}} | footer',
     '/app/page/content': "{{extends '/layout'}}content {{include '~/component'}}",
