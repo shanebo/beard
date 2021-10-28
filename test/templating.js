@@ -1,9 +1,8 @@
 const { expect } = require('chai');
-const normalize = require('path').normalize;
 
-const beard = require('../beard');
+const beard = require('../lib/index');
 
-describe('Beard Rendering', function() {
+describe('Templating', function() {
   it('renders content', function() {
     const engine = beard({
       templates: {
@@ -130,19 +129,28 @@ describe('Beard Rendering', function() {
       to.equal('names =  Bill John Dave');
   });
 
-  it('handles for loops with embedded values', function() {
-      const engine = beard({ templates: {
-        '/loops': `
-        {{for name, index in ['Charles', 'John', 'Martin']}}
-          {{index}} - {{name}}
-        {{end}}
+  it('handles for loops', function() {
+    const engine = beard({ templates: {
+      '/with-index': 'names = {{for name, index in names}} {{name}} - {{index}}{{end}}',
+      '/no-index': 'names = {{for name in names}} {{name}}{{end}}'
+    }});
+    expect(engine.render('with-index', {names: ['Bill', 'John', 'Dave']})).
+      to.equal('names =  Bill - 0 John - 1 Dave - 2');
+    expect(engine.render('no-index', {names: ['Bill', 'John', 'Dave']})).
+      to.equal('names =  Bill John Dave');
+  });
 
-        {{for sort in [{label: 'Up', val: 'asc'}, {label: 'Down', val: 'desc'}]}}
-          {{sort.label}} - {{sort.val}}
+  it('handles multiline for blocks with functions', function() {
+      const engine = beard({ templates: {
+        '/view': `
+        {{for name in ['charles', 'john', 'martin'].map((n) => {
+          return n.toUpperCase();
+          })}}
+          {{name}}
         {{end}}
         `
       }});
-      expect(engine.render('/loops').trim()).to.equal('0 - Charles  1 - John  2 - Martin   Up - asc  Down - desc');
+      expect(engine.render('view').replace(/\s+/gm, ' ').trim()).to.equal('CHARLES JOHN MARTIN');
   });
 
   it('handles each loops', function() {
@@ -172,6 +180,22 @@ describe('Beard Rendering', function() {
       to.equal('people = Charles Spurgeon! John Calvin! ');
   });
 
+  it('handles each loops with maps', function() {
+    const engine = beard({
+      templates: {
+        '/view': `
+        {{each person in people.map((n) => {
+          return n.toUpperCase();
+          })}}
+          {{person}}
+        {{end}}
+        `
+      }
+    });
+    const people = ['charles', 'john'];
+    expect(engine.render('view', {people: people}).replace(/\s+/gm, ' ').trim()).to.equal('CHARLES JOHN');
+  });
+
   it('handles each loops with embedded values', function() {
     const engine = beard({
       templates: {
@@ -186,7 +210,7 @@ describe('Beard Rendering', function() {
         `
       }
     });
-    expect(engine.render('/loops').trim()).to.equal('Up - asc  Down - desc   Uno  Dos  Tres');
+    expect(engine.render('/loops').replace(/\s+/gm, ' ').trim()).to.equal('Up - asc Down - desc Uno Dos Tres');
   });
 
   it('handles conditionals', function() {
@@ -215,6 +239,27 @@ describe('Beard Rendering', function() {
     expect(engine.render('with', {navigation: 'full'})).to.include('full navigation');
     expect(engine.render('with', {navigation: 'sub'})).to.include('subnavigation');
     expect(engine.render('with', {navigation: 'none'})).to.include('no nav');
+  });
+
+  it('handles conditionals with functions', function() {
+    const engine = beard({
+      templates: {
+        '/view': `
+          {{if ['FULL', 'PARTIAL'].map((s) => {
+            return s.toLowerCase();
+          }).includes(navigation)}}
+            full navigation
+          {{else if ['OPTION'].map((s) => {
+            return s.toLowerCase();
+          }).includes(navigation)}}
+            option navigation
+          {{end}}
+        `
+      }
+    });
+    expect(engine.render('view', {navigation: 'full'})).to.include('full navigation');
+    expect(engine.render('view', {navigation: 'option'})).to.include('option navigation');
+    expect(engine.render('view', {navigation: 'none'}).trim()).to.equal('');
   });
 
   it('handles strings', function() {
@@ -340,7 +385,7 @@ describe('Beard Rendering', function() {
       templates: {
         '/templates/view': `
           start
-          {{include '../header', content}}
+          {{include:content '../header'}}
             <h1>hello world</h1>
           {{endinclude}}
           end`,
@@ -355,7 +400,7 @@ describe('Beard Rendering', function() {
       templates: {
         '/templates/view': `
           start
-          {{include '../header', {title: 'The Title'}, content}}
+          {{include:content '../header', {title: 'The Title'}}}
             <h1>Hello World</h1>
           {{endinclude}}
           end`,
@@ -370,9 +415,9 @@ describe('Beard Rendering', function() {
       templates: {
         '/templates/view': `
           start
-          {{include '../header', {
+          {{include:content '../header', {
             header: 'Header'
-          }, content}}
+          }}}
             <h1>Header</h1>
           {{endinclude}}
           end`,
@@ -392,7 +437,7 @@ describe('Beard Rendering', function() {
           {{block nav}}
           main nav
           {{endblock}}
-          {{include '../header', content}}
+          {{include:content '../header'}}
             <h1>Header</h1>
           {{endinclude}}
           end`,
@@ -448,7 +493,7 @@ describe('Beard Rendering', function() {
           console.log(obj);
         }
         </script>
-      `.replace(/\s+/g, ' '));
+      `);
   });
 
   it('handles nested template data', function() {
@@ -516,6 +561,15 @@ describe('Beard Rendering', function() {
     expect(engine.render('content')).to.equal('jack does not exist');
   });
 
+  it('checks if var does not exist', function() {
+    const engine = beard({
+      templates: {
+        '/content': `{{existsNot jack}}jack does not exist{{else}}jack does exist{{end}}`,
+      }
+    });
+    expect(engine.render('content')).to.equal('jack does not exist');
+  });
+
   it('checks if assigned var exists', function() {
     const engine = beard({
       templates: {
@@ -551,136 +605,96 @@ describe('Beard Rendering', function() {
     });
     expect(engine.render('comments')).to.equal('some content');
   });
-});
 
-describe('File Traversing', function() {
-  it('renders files from the file system', function() {
-    const engine = beard({
-      root: __dirname
-    });
-    expect(engine.render('view').replace(/\s+/g, ' ')).to.equal('header | the view click | footer');
-  });
-});
+  describe('tag helper', function() {
+    it('renders a singleton tag', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'br'}}`,
+        }
+      });
 
-describe('Custom Tags', function() {
-  it('allows custom tags to be set', function() {
-    const engine = beard({
-      templates: {
-        '/views/content': `{{asset '../images/calvin.png'}}`,
-      },
-      customTags: {
-        asset: (path) => `/dist${path}`
-      }
+      expect(engine.render('content')).to.equal('<br>');
     });
-    expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
-  });
 
-  it('allows custom tags with data', function() {
-    const engine = beard({
-      templates: {
-        '/view': `{{asset '/calvin.png'}} page {{component 'simple', {title: 'Foo'}}}`,
-        '/components/simple': '{{title}} component'
-      },
-      customTags: {
-        asset: (path) => `/dist${path}`,
-        component: (path, data) => engine.render('/components' + path, data)
-      }
-    });
-    expect(engine.render('view')).to.equal('/dist/calvin.png page Foo component');
-  });
+    it('renders a tag with attributes', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'text'}}}`,
+        }
+      });
 
-  it('allows custom tags with dynamic paths', function() {
-    const engine = beard({
-      templates: {
-        '/view': "{{asset assetName}} page {{component `/components/${componentName}`, {title: 'Foo'}}} {{component other.replace('_', '-'), {name: 'Foo Bar'}}}",
-        '/components/simple': '{{title}} component',
-        '/foo-bar': 'The {{name}}'
-      },
-      customTags: {
-        asset: (path) => path,
-        component: (path, data) => engine.render(path, data)
-      }
+      expect(engine.render('content')).to.equal('<input type="text">');
     });
-    expect(engine.render('view', {assetName: 'calvin.png', componentName: 'simple', other: 'foo_bar'}))
-      .to.equal('/calvin.png page Foo component The Foo Bar');
-  });
 
-  it('handles custom tags with block content', function() {
-    const engine = beard({
-      templates: {
-        '/templates/view': `
-          top
-          {{component '../header', content}}
-            <h1>hello world</h1>
-          {{endcomponent}}`,
-        '/header': '{{content}} component'
-      },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
-      }
-    });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' top <h1>hello world</h1> component');
-  });
+    it('renders true attributes without a value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'checkbox', checked: true}}}`,
+        }
+      });
 
-  it('handles custom tags with block content and data', function() {
-    const engine = beard({
-      templates: {
-        '/templates/view': `
-          top
-          {{component '../header', {title: 'the title'}, content}}
-            <h1>hello world</h1>
-          {{endcomponent}}`,
-        '/header': '{{content}} {{title}} component'
-      },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
-      }
+      expect(engine.render('content')).to.equal('<input type="checkbox" checked>');
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> the title component');
-  });
 
-  it('handles custom tags with block content, data and subcomponents', function() {
-    const engine = beard({
-      templates: {
-        '/templates/view': `
-          top
-          {{component '../header',
-            {
-              title: 'the title'
-            }, content}}
-            <h1>hello world</h1>
-            {{component '/sub'}}
-          {{endcomponent}}`,
-        '/header': '{{content}} {{title}} component',
-        '/sub': 'the sub!'
-      },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
-      }
-    });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> the sub! the title component');
-  });
+    it('does not render false or null values', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'checkbox', checked: false, selected: null}}}`,
+        }
+      });
 
-  it('handles custom tags with block content and extended layouts', function() {
-    const engine = beard({
-      templates: {
-        '/templates/view': `
-          {{extends '../layout'}}
-          top
-          {{block nav}}the nav{{endblock}}
-          {{component '../header', content}}
-            <h1>hello world</h1>
-          {{endcomponent}}`,
-        '/header': '{{content}} component',
-        '/layout': 'begin {{nav}} {{content}} end'
-      },
-      customContentTags: {
-        component: (path, data) => engine.render(path, data)
-      }
+      expect(engine.render('content')).to.equal('<input type="checkbox">');
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal('begin the nav top <h1>hello world</h1> component end');
+
+    it('renders tags with value attributes', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'input', {type: 'text', value: 'john'}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<input type="text" value="john">');
+    });
+
+    it('renders non-singleton tags with a closing tag', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'textarea'}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea></textarea>');
+    });
+
+    it('renders non-singleton tags with text content', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'textarea', {content: 'content'}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea>content</textarea>');
+    });
+
+    it('renders tags with text value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag 'textarea', {value: 'value'}}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea>value</textarea>');
+    });
+
+    it('renders content captures as the text value', () => {
+      const engine = beard({
+        templates: {
+          '/content': `{{tag:content 'textarea'}}some content{{endtag}}`,
+        }
+      });
+
+      expect(engine.render('content')).to.equal('<textarea>some content</textarea>');
+    });
   });
 });

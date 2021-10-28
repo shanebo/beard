@@ -1,0 +1,19 @@
+<template>
+<body>
+simple
+</body>
+</template>
+
+<style>
+body {
+  color: blue;
+}
+</style>
+
+<script>
+document.getElementById('demo').innerHTML = 'hello';
+</script>
+
+<script handle>
+  const foo = 'boo';
+</script>

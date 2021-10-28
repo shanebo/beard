@@ -1,0 +1,9 @@
+<body>
+simple
+</body>
+
+<style lang="pcss">
+  body {
+    color: blue;
+  }
+</style>

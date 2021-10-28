@@ -1,0 +1,18 @@
+<body>
+  <span>test</span>
+  <h1>These tacos are <em>amazin</em>!</h1>
+</body>
+
+<style scoped>
+  span {
+    color: green;
+  }
+
+  h1 {
+    color: blue;
+
+    em {
+      font-style: italic;
+    }
+  }
+</style>
