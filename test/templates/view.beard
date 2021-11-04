@@ -1,3 +1,0 @@
-{{extends 'layout'}}
-the view
-{{include 'cta'}}

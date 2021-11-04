@@ -17,17 +17,8 @@
   "scripts": {
     "test": "mocha"
   },
-  "bin": {
-    "beard": "./cli.js"
-  },
   "dependencies": {
-    "cheerio": "github:cheeriojs/cheerio#3368605edb3c5babecc8576602a9d54ccfdaef1e",
-    "fs-extra": "7.0.1",
-    "merge-anything": "~3.0.3",
-    "mismatch": "^1.2.0",
-    "normalize-selector": "0.2.0",
-    "traversy": "0.0.2",
-    "xregexp": "4.2.4"
+    "merge-anything": "~4.0.1"
   },
   "devDependencies": {
     "mocha": "4.1.0",
