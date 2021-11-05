@@ -1,8 +1,6 @@
-const { expect } = require('chai');
-const normalize = require('path').normalize;
-const fs = require('fs');
-
 const beard = require('../lib/index');
+const { expect } = require('chai');
+
 
 describe('Tags', function() {
   it('allows tags to be set', function() {

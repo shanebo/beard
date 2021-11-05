@@ -1,6 +1,6 @@
+const beard = require('../lib/index');
 const { expect } = require('chai');
 
-const beard = require('../lib/index');
 
 describe('Templating', function() {
   it('renders content', function() {
