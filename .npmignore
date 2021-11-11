@@ -2,3 +2,5 @@
 bench.js
 test
 .DS_Store
+.beard
+node_modules
