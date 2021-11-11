@@ -1,7 +1,0 @@
-<body><span>test</span></body>
-
-<style scoped>
-span {
-  color: green;
-}
-</style>

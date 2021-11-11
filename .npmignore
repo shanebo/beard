@@ -1,11 +1,4 @@
-*.markdown
-*.md
 .git*
-Makefile
-benchmarks/
-docs/
-examples/
-install.sh
-support/
-test/
+bench.js
+test
 .DS_Store

@@ -1,8 +1,5 @@
-const { expect } = require('chai');
-const normalize = require('path').normalize;
-const fs = require('fs');
-
 const beard = require('../lib/index');
+const { expect } = require('chai');
 
 describe('Shortcuts', function() {
   it('allows shortcuts to be set for tags', function() {
