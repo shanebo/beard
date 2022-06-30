@@ -1,6 +1,6 @@
 {
   "name": "beard",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "More than a mustache.",
   "license": "MIT",
   "keywords": [
@@ -18,9 +18,9 @@
     "test": "mocha"
   },
   "devDependencies": {
-    "mocha": "4.1.0",
-    "chai": "4.1.2",
-    "chai-string": "1.5.0",
+    "mocha": "^10.0.0",
+    "chai": "^4.3.6",
+    "chai-string": "^1.5.0",
     "brisky-performance": "1.4.2"
   }
 }
