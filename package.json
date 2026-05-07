@@ -7,7 +7,10 @@
     "templating engine",
     "node"
   ],
-  "repository": "git://github.com/shanebo/beard.git",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/shanebo/beard.git"
+  },
   "author": "Shane Thacker <shane@steadymade.com>",
   "contributors": [
     "Joe Osburn <joe@jnodev.com>"
