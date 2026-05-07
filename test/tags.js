@@ -1,5 +1,6 @@
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
 const beard = require('../lib/index');
-const { expect } = require('chai');
 
 
 describe('Tags', function() {
@@ -16,7 +17,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/views/content')).to.equal('/dist/images/calvin.png');
+    assert.equal(engine.render('/views/content'), '/dist/images/calvin.png');
   });
 
   it('allows tags that do not process the first arg as a path', function() {
@@ -32,7 +33,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/view').replace(/\s+/g, ' ')).to.equal('<a href="www.google.com">google</a>');
+    assert.equal(engine.render('/view').replace(/\s+/g, ' '), '<a href="www.google.com">google</a>');
   });
 
   it('allows tags with data', function() {
@@ -54,7 +55,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('view')).to.equal('/dist/calvin.png page Foo component');
+    assert.equal(engine.render('view'), '/dist/calvin.png page Foo component');
   });
 
   it('allows tags with dynamic paths', function() {
@@ -77,8 +78,10 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('view', {assetName: 'calvin.png', componentName: 'simple', other: 'foo_bar'}))
-      .to.equal('/dist/calvin.png page Foo component The Foo Bar');
+    assert.equal(
+      engine.render('view', {assetName: 'calvin.png', componentName: 'simple', other: 'foo_bar'}),
+      '/dist/calvin.png page Foo component The Foo Bar'
+    );
   });
 
   it('handles tags with block content', function() {
@@ -99,7 +102,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' top <h1>hello world</h1> component');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top <h1>hello world</h1> component');
   });
 
   it('handles tags with block content and data', function() {
@@ -120,8 +123,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> the title component');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top <h1>hello world</h1> the title component');
   });
 
   it('handles tags with block content and inline blocks', function() {
@@ -149,8 +151,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> a button some actions component');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top <h1>hello world</h1> a button some actions component');
   });
 
   it('handles tags with block content, inline blocks and data', function() {
@@ -174,8 +175,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> data button some actions component');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top <h1>hello world</h1> data button some actions component');
   });
 
   it('handles tags with block content, data and subcomponents', function() {
@@ -201,8 +201,7 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> the sub! the title component');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top <h1>hello world</h1> the sub! the title component');
   });
 
   it('handles tags with block content and extended layouts', function() {
@@ -226,7 +225,6 @@ describe('Tags', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal('begin the nav top <h1>hello world</h1> component end');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), 'begin the nav top <h1>hello world</h1> component end');
   });
 });

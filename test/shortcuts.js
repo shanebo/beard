@@ -1,5 +1,7 @@
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
 const beard = require('../lib/index');
-const { expect } = require('chai');
+
 
 describe('Shortcuts', function() {
   it('allows shortcuts to be set for tags', function() {
@@ -21,7 +23,7 @@ describe('Shortcuts', function() {
         }
       }
     });
-    expect(engine.render('/views/content')).to.equal('/dist/images/logo.png');
+    assert.equal(engine.render('/views/content'), '/dist/images/logo.png');
   });
 
   it('allows shortcuts with data', function() {
@@ -44,7 +46,7 @@ describe('Shortcuts', function() {
         }
       }
     });
-    expect(engine.render('/views/content')).to.equal('Welcome To The component');
+    assert.equal(engine.render('/views/content'), 'Welcome To The component');
   });
 
   it('allows shortcuts with block content', function() {
@@ -71,8 +73,7 @@ describe('Shortcuts', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top title some content ');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top title some content ');
   });
 
   it('allows shortcuts with block content and inline blocks', function() {
@@ -106,8 +107,7 @@ describe('Shortcuts', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> a button some actions component');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top <h1>hello world</h1> a button some actions component');
   });
 
   it('allows shortcuts with block content, inline blocks, and data', function() {
@@ -137,8 +137,7 @@ describe('Shortcuts', function() {
         }
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top <h1>hello world</h1> data button some actions component');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top <h1>hello world</h1> data button some actions component');
   });
 
   it('allows shortcuts with periods in the name', function() {
@@ -165,7 +164,6 @@ describe('Shortcuts', function() {
         }
       }
     });
-    expect(engine.render('/view').replace(/\s+/g, ' ')).
-      to.equal(' top page info ');
+    assert.equal(engine.render('/view').replace(/\s+/g, ' '), ' top page info ');
   });
 });

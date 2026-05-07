@@ -1,5 +1,6 @@
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
 const beard = require('../lib/index');
-const { expect } = require('chai');
 
 
 describe('Templating', function() {
@@ -9,7 +10,7 @@ describe('Templating', function() {
         '/content': 'some content'
       }
     });
-    expect(engine.render('content')).to.equal('some content');
+    assert.equal(engine.render('content'), 'some content');
   });
 
   it('handles errors', function() {
@@ -18,7 +19,10 @@ describe('Templating', function() {
         '/content': '{{foo}}}'
       }
     });
-    expect(() => engine.render('content', {foo: 'value'})).to.throw(/\"\{\{foo\}\}\}\" in \/content on line 1/);
+    assert.throws(
+      () => engine.render('content', {foo: 'value'}),
+      (err) => /"\{\{foo\}\}\}" in \/content on line 1/.test(err.message)
+    );
   });
 
   it('includes templates', function() {
@@ -28,7 +32,7 @@ describe('Templating', function() {
         '/view': `header {{include 'content'}} footer`
       }
     });
-    expect(engine.render('view')).to.equal('header some content footer');
+    assert.equal(engine.render('view'), 'header some content footer');
   });
 
   it('includes templates with dynamic paths', function() {
@@ -40,8 +44,10 @@ describe('Templating', function() {
         '/includes/other-content': 'Content!'
       }
     });
-    expect(engine.render('view', {partial: '/includes/content', support: 'footer', other: 'other_content'}))
-      .to.equal('header Partial Content Footer Content!');
+    assert.equal(
+      engine.render('view', {partial: '/includes/content', support: 'footer', other: 'other_content'}),
+      'header Partial Content Footer Content!'
+    );
   });
 
   it('renders blocks', function() {
@@ -50,7 +56,7 @@ describe('Templating', function() {
         '/block': '{{block footer}}a footer{{endblock}}some info - {{footer}}'
       }
     });
-    expect(engine.render('block')).to.equal('some info - a footer');
+    assert.equal(engine.render('block'), 'some info - a footer');
   });
 
   it('renders blocks inside blocks', function() {
@@ -66,7 +72,7 @@ describe('Templating', function() {
           {{footer}} -- {{name}} -- {{sub}}`
       }
     });
-    expect(engine.render('block').replace(/\s+/g, ' ')).to.equal(' a footer -- bill -- subinfo ');
+    assert.equal(engine.render('block').replace(/\s+/g, ' '), ' a footer -- bill -- subinfo ');
   });
 
   it('extends layouts', function() {
@@ -88,8 +94,7 @@ describe('Templating', function() {
         `
       }
     });
-    expect(engine.render('view').replace(/\s+/g, ' ')) // replacing excessive whitespace for readability
-      .to.equal(` header main navigation - page content footer `);
+    assert.equal(engine.render('view').replace(/\s+/g, ' '), ` header main navigation - page content footer `);
   });
 
   it('extends layouts with dynamic paths', function() {
@@ -103,9 +108,9 @@ describe('Templating', function() {
         '/base-layout': 'header {{put content}} footer'
       }
     });
-    expect(engine.render('view', {layout: 'base'})).to.equal('header page footer');
-    expect(engine.render('page', {layout: 'simple'})).to.equal('a layout the page bottom');
-    expect(engine.render('content', {layout: 'base_layout'})).to.equal('header content footer');
+    assert.equal(engine.render('view', {layout: 'base'}), 'header page footer');
+    assert.equal(engine.render('page', {layout: 'simple'}), 'a layout the page bottom');
+    assert.equal(engine.render('content', {layout: 'base_layout'}), 'header content footer');
   });
 
   it('extends layouts and renders the content with put', function() {
@@ -115,7 +120,7 @@ describe('Templating', function() {
         '/layout': `header {{put content}} footer`
       }
     });
-    expect(engine.render('view')).to.equal(`header page content footer`);
+    assert.equal(engine.render('view'), `header page content footer`);
   });
 
   it('handles for loops', function() {
@@ -123,34 +128,21 @@ describe('Templating', function() {
       '/with-index': 'names = {{for name, index in names}} {{name}} - {{index}}{{end}}',
       '/no-index': 'names = {{for name in names}} {{name}}{{end}}'
     }});
-    expect(engine.render('with-index', {names: ['Bill', 'John', 'Dave']})).
-      to.equal('names =  Bill - 0 John - 1 Dave - 2');
-    expect(engine.render('no-index', {names: ['Bill', 'John', 'Dave']})).
-      to.equal('names =  Bill John Dave');
-  });
-
-  it('handles for loops', function() {
-    const engine = beard({ templates: {
-      '/with-index': 'names = {{for name, index in names}} {{name}} - {{index}}{{end}}',
-      '/no-index': 'names = {{for name in names}} {{name}}{{end}}'
-    }});
-    expect(engine.render('with-index', {names: ['Bill', 'John', 'Dave']})).
-      to.equal('names =  Bill - 0 John - 1 Dave - 2');
-    expect(engine.render('no-index', {names: ['Bill', 'John', 'Dave']})).
-      to.equal('names =  Bill John Dave');
+    assert.equal(engine.render('with-index', {names: ['Bill', 'John', 'Dave']}), 'names =  Bill - 0 John - 1 Dave - 2');
+    assert.equal(engine.render('no-index', {names: ['Bill', 'John', 'Dave']}), 'names =  Bill John Dave');
   });
 
   it('handles multiline for blocks with functions', function() {
-      const engine = beard({ templates: {
-        '/view': `
-        {{for name in ['charles', 'john', 'martin'].map((n) => {
-          return n.toUpperCase();
-          })}}
-          {{name}}
-        {{end}}
-        `
-      }});
-      expect(engine.render('view').replace(/\s+/gm, ' ').trim()).to.equal('CHARLES JOHN MARTIN');
+    const engine = beard({ templates: {
+      '/view': `
+      {{for name in ['charles', 'john', 'martin'].map((n) => {
+        return n.toUpperCase();
+        })}}
+        {{name}}
+      {{end}}
+      `
+    }});
+    assert.equal(engine.render('view').replace(/\s+/gm, ' ').trim(), 'CHARLES JOHN MARTIN');
   });
 
   it('handles each loops', function() {
@@ -161,23 +153,11 @@ describe('Templating', function() {
       }
     });
     const people = [
-      {
-        name: {
-          first: 'Charles',
-          last: 'Spurgeon'
-        }
-      },
-      {
-        name: {
-          first: 'John',
-          last: 'Calvin'
-        }
-      }
+      { name: { first: 'Charles', last: 'Spurgeon' } },
+      { name: { first: 'John', last: 'Calvin' } }
     ];
-    expect(engine.render('with-index', {people: people})).
-      to.equal('people = 0 - Charles Spurgeon! 1 - John Calvin! ');
-    expect(engine.render('no-index', {people: people})).
-      to.equal('people = Charles Spurgeon! John Calvin! ');
+    assert.equal(engine.render('with-index', {people}), 'people = 0 - Charles Spurgeon! 1 - John Calvin! ');
+    assert.equal(engine.render('no-index', {people}), 'people = Charles Spurgeon! John Calvin! ');
   });
 
   it('handles each loops with maps', function() {
@@ -193,7 +173,7 @@ describe('Templating', function() {
       }
     });
     const people = ['charles', 'john'];
-    expect(engine.render('view', {people: people}).replace(/\s+/gm, ' ').trim()).to.equal('CHARLES JOHN');
+    assert.equal(engine.render('view', {people}).replace(/\s+/gm, ' ').trim(), 'CHARLES JOHN');
   });
 
   it('handles each loops with embedded values', function() {
@@ -210,7 +190,7 @@ describe('Templating', function() {
         `
       }
     });
-    expect(engine.render('/loops').replace(/\s+/gm, ' ').trim()).to.equal('Up - asc Down - desc Uno Dos Tres');
+    assert.equal(engine.render('/loops').replace(/\s+/gm, ' ').trim(), 'Up - asc Down - desc Uno Dos Tres');
   });
 
   it('handles conditionals', function() {
@@ -236,9 +216,9 @@ describe('Templating', function() {
         `
       }
     });
-    expect(engine.render('with', {navigation: 'full'})).to.include('full navigation');
-    expect(engine.render('with', {navigation: 'sub'})).to.include('subnavigation');
-    expect(engine.render('with', {navigation: 'none'})).to.include('no nav');
+    assert.ok(engine.render('with', {navigation: 'full'}).includes('full navigation'));
+    assert.ok(engine.render('with', {navigation: 'sub'}).includes('subnavigation'));
+    assert.ok(engine.render('with', {navigation: 'none'}).includes('no nav'));
   });
 
   it('handles conditionals with functions', function() {
@@ -257,100 +237,76 @@ describe('Templating', function() {
         `
       }
     });
-    expect(engine.render('view', {navigation: 'full'})).to.include('full navigation');
-    expect(engine.render('view', {navigation: 'option'})).to.include('option navigation');
-    expect(engine.render('view', {navigation: 'none'}).trim()).to.equal('');
+    assert.ok(engine.render('view', {navigation: 'full'}).includes('full navigation'));
+    assert.ok(engine.render('view', {navigation: 'option'}).includes('option navigation'));
+    assert.equal(engine.render('view', {navigation: 'none'}).trim(), '');
   });
 
   it('handles strings', function() {
     const engine = beard({
-      templates: {
-        '/content': '{{content}}'
-      }
+      templates: { '/content': '{{content}}' }
     });
-    expect(engine.render('content', {content: 'some content'})).to.equal('some content');
+    assert.equal(engine.render('content', {content: 'some content'}), 'some content');
   });
 
   it('handles numbers', function() {
     const engine = beard({
-      templates: {
-        '/value': '{{value}}'
-      }
+      templates: { '/value': '{{value}}' }
     });
-    expect(engine.render('value', {value: 36})).to.equal('36');
+    assert.equal(engine.render('value', {value: 36}), '36');
   });
 
   it('handles arrays', function() {
     const engine = beard({
-      templates: {
-        '/arrays': '{{each name in names}}{{name}} {{end}}'
-      }
+      templates: { '/arrays': '{{each name in names}}{{name}} {{end}}' }
     });
-    expect(engine.render('arrays', {names: ['John Calvin', 'Charles Spurgeon']})).to.equal('John Calvin Charles Spurgeon ');
+    assert.equal(engine.render('arrays', {names: ['John Calvin', 'Charles Spurgeon']}), 'John Calvin Charles Spurgeon ');
   });
 
   it('handles arrays of objects', function() {
     const engine = beard({
-      templates: {
-        '/arrays': '{{each person in people}}{{person.name}} {{end}}'
-      }
+      templates: { '/arrays': '{{each person in people}}{{person.name}} {{end}}' }
     });
     const data = {
       people: [
-        {
-          name: 'John Knox'
-        },
-        {
-          name: 'Charles Spurgeon'
-        },
-        {
-          name: 'John Owen'
-        }
+        { name: 'John Knox' },
+        { name: 'Charles Spurgeon' },
+        { name: 'John Owen' }
       ]
     };
-    expect(engine.render('arrays', data)).to.equal('John Knox Charles Spurgeon John Owen ');
+    assert.equal(engine.render('arrays', data), 'John Knox Charles Spurgeon John Owen ');
   });
 
   it('handles functions', function() {
     const engine = beard({
-      templates: {
-        '/functions': 'add = {{math.add(3, 10)}}, subtract = {{math.subtract(10, 5)}}'
-      }
+      templates: { '/functions': 'add = {{math.add(3, 10)}}, subtract = {{math.subtract(10, 5)}}' }
     });
-    expect(engine.render('functions', {math: {add: (x, y) => x + y, subtract: (x, y) => x - y }}))
-      .to.equal('add = 13, subtract = 5');
+    assert.equal(
+      engine.render('functions', {math: {add: (x, y) => x + y, subtract: (x, y) => x - y}}),
+      'add = 13, subtract = 5'
+    );
   });
 
   it('handles objects', function() {
     const engine = beard({
-      templates: {
-        '/object': '{{resource.slug}}'
-      }
+      templates: { '/object': '{{resource.slug}}' }
     });
-    const data = {
-      resource: {
-        slug: 'the-most-interesting-article'
-      }
-    };
-    expect(engine.render('object', data)).to.include('the-most-interesting-article');
+    const data = { resource: { slug: 'the-most-interesting-article' } };
+    assert.ok(engine.render('object', data).includes('the-most-interesting-article'));
   });
 
   it('handles null values', function() {
     const engine = beard({
-      templates: {
-        '/null_value': '{{value}}'
-      }
+      templates: { '/null_value': '{{value}}' }
     });
-    expect(engine.render('null_value', {value: null})).to.equal('null');
+    assert.equal(engine.render('null_value', {value: null}), 'null');
   });
 
   it('handles undefined values', function() {
     const engine = beard({
-      templates: {
-        '/undefined_value': '{{value}}'
-      }
+      templates: { '/undefined_value': '{{value}}' }
     });
-    expect(engine.render('undefined_value', {value: undefined})).to.equal('undefined');
+    assert.equal(engine.render('undefined_value', {value: undefined}), 'undefined');
   });
 
   it('handles sublayouts', function() {
@@ -362,7 +318,7 @@ describe('Templating', function() {
         '/partial': "{{extends 'sublayout'}}{{block main}}main{{endblock}}{{block sidebar}}sidebar{{endblock}}hi im view"
       }
     });
-    expect(engine.render('view')).to.equal('header | sidebar | hi im view | main | footer');
+    assert.equal(engine.render('view'), 'header | sidebar | hi im view | main | footer');
   });
 
   it('handles passing data to includes', function() {
@@ -376,8 +332,8 @@ describe('Templating', function() {
         }}}`
       }
     });
-    expect(engine.render('view')).to.equal('1st | 1, 2nd | 2');
-    expect(engine.render('multiline')).to.equal('multi | line');
+    assert.equal(engine.render('view'), '1st | 1, 2nd | 2');
+    assert.equal(engine.render('multiline'), 'multi | line');
   });
 
   it('handles includes with content blocks', function() {
@@ -392,7 +348,7 @@ describe('Templating', function() {
         '/header': '{{content}} include'
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>hello world</h1> include end');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' start <h1>hello world</h1> include end');
   });
 
   it('handles includes with content blocks and data', function() {
@@ -407,7 +363,7 @@ describe('Templating', function() {
         '/header': '{{content}} {{title}} include'
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>Hello World</h1> The Title include end');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' start <h1>Hello World</h1> The Title include end');
   });
 
   it('handles includes with content blocks and data and subincludes', function() {
@@ -425,7 +381,7 @@ describe('Templating', function() {
         '/partial': 'partial {{content}}'
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).to.equal(' start <h1>Header</h1> partial Header include end');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' start <h1>Header</h1> partial Header include end');
   });
 
   it('handles includes with content blocks inside an extends', function() {
@@ -451,14 +407,13 @@ describe('Templating', function() {
         `
       }
     });
-    expect(engine.render('/templates/view').replace(/\s+/g, ' ')).
-      to.equal(' top main nav - begin <h1>Header</h1> include end footer ');
+    assert.equal(engine.render('/templates/view').replace(/\s+/g, ' '), ' top main nav - begin <h1>Header</h1> include end footer ');
   });
 
   it('ignores inline css and js', function() {
     const engine = beard({
       templates: {
-      '/template': `
+        '/template': `
         <style>
         .hello {
           background-color: #f33
@@ -477,7 +432,7 @@ describe('Templating', function() {
       `
       }
     });
-    expect(engine.render('template')).to.equal(`
+    assert.equal(engine.render('template'), `
         <style>
         .hello {
           background-color: #f33
@@ -538,163 +493,126 @@ describe('Templating', function() {
         `
       }
     });
-    expect(engine.render('view', {names: ['Jack', 'Black', 'John'], value: 'b'}).replace(/\s+/g, ' ')).to
-      .equal(' im inside layout Jack Black John second partialblock im in sublayout im the view im in foo block ');
+    assert.equal(
+      engine.render('view', {names: ['Jack', 'Black', 'John'], value: 'b'}).replace(/\s+/g, ' '),
+      ' im inside layout Jack Black John second partialblock im in sublayout im the view im in foo block '
+    );
   });
 
   it('encodes html', function() {
     const engine = beard({
-      templates: {
-        '/encode': '{{:value}}'
-      }
+      templates: { '/encode': '{{:value}}' }
     });
-    expect(engine.render('encode', {value: 'result&amp;script<script>alert("hi\'");</script>'}))
-      .to.equal('result&amp;script&#60;script&#62;alert(&#34;hi&#39;&#34;);&#60;&#47;script&#62;');
+    assert.equal(
+      engine.render('encode', {value: 'result&amp;script<script>alert("hi\'");</script>'}),
+      'result&amp;script&#60;script&#62;alert(&#34;hi&#39;&#34;);&#60;&#47;script&#62;'
+    );
   });
 
   it('checks if undefined var exists', function() {
     const engine = beard({
-      templates: {
-        '/content': `{{exists jack}}jack does exist{{else}}jack does not exist{{end}}`,
-      }
+      templates: { '/content': `{{exists jack}}jack does exist{{else}}jack does not exist{{end}}` }
     });
-    expect(engine.render('content')).to.equal('jack does not exist');
+    assert.equal(engine.render('content'), 'jack does not exist');
   });
 
   it('checks if var does not exist', function() {
     const engine = beard({
-      templates: {
-        '/content': `{{existsNot jack}}jack does not exist{{else}}jack does exist{{end}}`,
-      }
+      templates: { '/content': `{{existsNot jack}}jack does not exist{{else}}jack does exist{{end}}` }
     });
-    expect(engine.render('content')).to.equal('jack does not exist');
+    assert.equal(engine.render('content'), 'jack does not exist');
   });
 
   it('checks if assigned var exists', function() {
     const engine = beard({
-      templates: {
-        '/content': `{{block jack}}im jack{{endblock}}{{exists jack}}jack block exists{{else}}jack does not exist{{end}}`,
-      }
+      templates: { '/content': `{{block jack}}im jack{{endblock}}{{exists jack}}jack block exists{{else}}jack does not exist{{end}}` }
     });
-    expect(engine.render('content')).to.equal('jack block exists');
+    assert.equal(engine.render('content'), 'jack block exists');
   });
 
   it('puts assigned var', function() {
     const engine = beard({
-      templates: {
-        '/content': `{{block jack}}im jack{{endblock}}{{put jack}}`,
-      }
+      templates: { '/content': `{{block jack}}im jack{{endblock}}{{put jack}}` }
     });
-    expect(engine.render('content')).to.equal('im jack');
+    assert.equal(engine.render('content'), 'im jack');
   });
 
   it('puts undefined var without throwing error', function() {
     const engine = beard({
-      templates: {
-        '/content': `{{put jack}}`,
-      }
+      templates: { '/content': `{{put jack}}` }
     });
-    expect(engine.render('content')).to.equal('');
+    assert.equal(engine.render('content'), '');
   });
 
   it('does not render comments', function() {
     const engine = beard({
-      templates: {
-        '/comments': 'some {{* a comment *}}content{{*another one*}}'
-      }
+      templates: { '/comments': 'some {{* a comment *}}content{{*another one*}}' }
     });
-    expect(engine.render('comments')).to.equal('some content');
+    assert.equal(engine.render('comments'), 'some content');
   });
 
   describe('tag helper', function() {
-    it('renders a singleton tag', () => {
+    it('renders a singleton tag', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'br'}}`,
-        }
+        templates: { '/content': `{{tag 'br'}}` }
       });
-
-      expect(engine.render('content')).to.equal('<br>');
+      assert.equal(engine.render('content'), '<br>');
     });
 
-    it('renders a tag with attributes', () => {
+    it('renders a tag with attributes', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'input', {type: 'text'}}}`,
-        }
+        templates: { '/content': `{{tag 'input', {type: 'text'}}}` }
       });
-
-      expect(engine.render('content')).to.equal('<input type="text">');
+      assert.equal(engine.render('content'), '<input type="text">');
     });
 
-    it('renders true attributes without a value', () => {
+    it('renders true attributes without a value', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'input', {type: 'checkbox', checked: true}}}`,
-        }
+        templates: { '/content': `{{tag 'input', {type: 'checkbox', checked: true}}}` }
       });
-
-      expect(engine.render('content')).to.equal('<input type="checkbox" checked>');
+      assert.equal(engine.render('content'), '<input type="checkbox" checked>');
     });
 
-    it('does not render false or null values', () => {
+    it('does not render false or null values', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'input', {type: 'checkbox', checked: false, selected: null}}}`,
-        }
+        templates: { '/content': `{{tag 'input', {type: 'checkbox', checked: false, selected: null}}}` }
       });
-
-      expect(engine.render('content')).to.equal('<input type="checkbox">');
+      assert.equal(engine.render('content'), '<input type="checkbox">');
     });
 
-    it('renders tags with value attributes', () => {
+    it('renders tags with value attributes', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'input', {type: 'text', value: 'john'}}}`,
-        }
+        templates: { '/content': `{{tag 'input', {type: 'text', value: 'john'}}}` }
       });
-
-      expect(engine.render('content')).to.equal('<input type="text" value="john">');
+      assert.equal(engine.render('content'), '<input type="text" value="john">');
     });
 
-    it('renders non-singleton tags with a closing tag', () => {
+    it('renders non-singleton tags with a closing tag', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'textarea'}}`,
-        }
+        templates: { '/content': `{{tag 'textarea'}}` }
       });
-
-      expect(engine.render('content')).to.equal('<textarea></textarea>');
+      assert.equal(engine.render('content'), '<textarea></textarea>');
     });
 
-    it('renders non-singleton tags with text content', () => {
+    it('renders non-singleton tags with text content', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'textarea', {content: 'content'}}}`,
-        }
+        templates: { '/content': `{{tag 'textarea', {content: 'content'}}}` }
       });
-
-      expect(engine.render('content')).to.equal('<textarea>content</textarea>');
+      assert.equal(engine.render('content'), '<textarea>content</textarea>');
     });
 
-    it('renders tags with text value', () => {
+    it('renders tags with text value', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag 'textarea', {value: 'value'}}}`,
-        }
+        templates: { '/content': `{{tag 'textarea', {value: 'value'}}}` }
       });
-
-      expect(engine.render('content')).to.equal('<textarea>value</textarea>');
+      assert.equal(engine.render('content'), '<textarea>value</textarea>');
     });
 
-    it('renders content captures as the text value', () => {
+    it('renders content captures as the text value', function() {
       const engine = beard({
-        templates: {
-          '/content': `{{tag:content 'textarea'}}some content{{endtag}}`,
-        }
+        templates: { '/content': `{{tag:content 'textarea'}}some content{{endtag}}` }
       });
-
-      expect(engine.render('content')).to.equal('<textarea>some content</textarea>');
+      assert.equal(engine.render('content'), '<textarea>some content</textarea>');
     });
   });
 });
